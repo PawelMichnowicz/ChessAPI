@@ -1,3 +1,4 @@
+from sqlite3 import connect
 import websockets
 import asyncio
 import itertools
@@ -18,28 +19,23 @@ async def echo(websocket, path):
         print("Waiting for second player")
         await asyncio.sleep(1)
 
+    player_1, player_2 = list(connected)[0], list(connected)[1]
+    game = Game(player_1, player_2)
+    await websocket.send(str(websocket==player_1))
 
-    turns = itertools.cycle(connected)
-    # turns = itertools.cycle([BLACK, WHITE])
-    first_move = next(turns)
-    await websocket.send(str(websocket==first_move))
 
-    game = Game()
     async for message in websocket:
-        print(game.turn)
         try:
             (x,y), (xx,yy) = (message).split(':')
             start_pos = (int(x),int(y))
             end_pos = (int(xx),int(yy))
-            game.make_move(start_pos, end_pos)
+            game.make_move(start_pos, end_pos, websocket)
             await websocket.send('ok')
         except Exception as e:
             await websocket.send(str(e))
             continue
 
         game.board.print_board()
-
-
 
         for conn in connected:
             if conn != websocket:

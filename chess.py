@@ -78,20 +78,37 @@ class Board():
         return self.array[position[0]][position[1]]==EMPTY
 
 
+class Player():
+
+    def __init__(self, websocket, color):
+        self.websocket = websocket
+        self.color = color
+
 
 class Game():
 
-    def __init__(self):
+    def __init__(self, websocket_1, websocket_2):
         self.board = Board()
-        self.turn = WHITE
+        self.player_1 = Player(websocket_1, WHITE)
+        self.player_2 = Player(websocket_2, BLACK)
+        self.turn = self.player_1
 
-    def make_move(self, start_pos, end_pos):
+    def make_move(self, start_pos, end_pos, websocket):
+        # if self.turn.websocket != websocket:
+        #     raise Exception("It is not your turn!")
+        if self.player_1.websocket==websocket:
+            current_player = self.player_1
+        elif self.player_2.websocket==websocket:
+            current_player = self.player_2
+        else:
+            raise Exception('WTF!')
+
         piece = self.board.get_piece(start_pos)
         target = self.board.get_piece(end_pos)
 
         if piece == EMPTY:
             raise Exception('That is empty field!')
-        if piece.color != self.turn:
+        if piece.color != current_player.color:
             raise Exception('It is not your piece!')
         if end_pos not in piece.available_moves(self.board):
             raise Exception("Invalid move!")
@@ -102,10 +119,11 @@ class Game():
         self.board.array[start_pos[0]][start_pos[1]] = EMPTY
         self.board.array[end_pos[0]][end_pos[1]] = piece
 
-        if self.turn == WHITE:
-            self.turn = BLACK
+        if self.turn == self.player_1:
+            self.turn = self.player_2
         else:
-            self.turn = WHITE
+            self.turn = self.player_1
+
 
         return True
 
@@ -115,10 +133,18 @@ class Game():
 
 if __name__ == "__main__":
 
-    game = Game()
+    player_1 = Player('x', WHITE)
+    player_2 = Player('y', BLACK)
+    game = Game(player_1, player_2)
     game.board.print_board()
-    fig = game.board.get_piece((6,1))
-    print(fig.available_moves(game.board))
-    game.make_move((6,2),(5, 2))
+    print('\n')
+    game.make_move((6,2),(5, 2), player_1)
     game.board.print_board()
+    print('\n')
+    game.make_move((1,1),(2,1), player_2)
+    game.board.print_board()
+    print('\n')
+    game.make_move((5,2),(4, 2), player_1)
+    game.board.print_board()
+    print('\n')
 

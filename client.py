@@ -18,7 +18,10 @@ async def listen():
 
         my_turn_str = await ws.recv()
         my_turn = str_to_bool(my_turn_str)
+
+
         while True:
+
             if my_turn:
                 while True:
                     await ws.send(input("Your Turn: "))
@@ -31,5 +34,6 @@ async def listen():
                 msg = await ws.recv()
                 print(f"Opponent made: {msg}")
             my_turn = not my_turn
+
 
 asyncio.run(listen())
