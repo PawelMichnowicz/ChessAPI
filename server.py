@@ -11,7 +11,7 @@ connected = set()
 # ogranicz liczbe graczy do dwóch
 # popraw waiting -> niech idzie do gracza
 
-async def echo(websocket, path):
+async def main(websocket, path):
     print("Connected")
     connected.add(websocket)
 
@@ -22,7 +22,6 @@ async def echo(websocket, path):
     player_1, player_2 = list(connected)[0], list(connected)[1]
     game = Game(player_1, player_2)
     await websocket.send(str(websocket==player_1))
-
 
     async for message in websocket:
         try:
@@ -39,12 +38,11 @@ async def echo(websocket, path):
 
         for conn in connected:
             if conn != websocket:
-                await conn.send("Someone said: " + message)
-
+                await conn.send("Opponent's move: " + message )
 
 async def start_server():
     print('Server started')
-    async with websockets.serve(echo, 'localhost', PORT, ping_interval=None):
+    async with websockets.serve(main, 'localhost', PORT, ping_interval=None):
         await asyncio.Future()
 
 

@@ -16,9 +16,7 @@ async def listen():
 
     async with websockets.connect(url, ping_interval=None) as ws:
 
-        my_turn_str = await ws.recv()
-        my_turn = str_to_bool(my_turn_str)
-
+        my_turn = str_to_bool(await ws.recv())
 
         while True:
 
