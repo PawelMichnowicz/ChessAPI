@@ -3,7 +3,21 @@ BLACK = 'black'
 
 EMPTY = ' '
 
-#
+# zapis ruchów
+# roszada
+# bicie w przelocie
+# tłumaczenie posunięć
+# szach z odsłony
+# zasada 50ruchów
+# 3krotne powtórzenie
+
+def opposite_color(color):
+    if color == BLACK:
+        return WHITE
+    elif color == WHITE:
+        return BLACK
+    else:
+        raise Exception('Invalid color')
 
 
 class Piece():
@@ -15,12 +29,19 @@ class Piece():
                     for y_step in [-2, -1, +1, +2] if abs(x_step) != abs(y_step)]
     pawn_steps = {BLACK: 1, WHITE: -1}
 
+
     def __init__(self, color, position):
         self.color = color
         self.position = position
 
+
     def __repr__(self) -> str:
+        if self.__class__.__name__ == Knight.__name__:
+            return f"N-{self.color[0]}"
         return f"{self.__class__.__name__[0]}-{self.color[0]}"
+
+    def __str__(self) -> str:
+        return f'{self.__class__.__name__} {self.position}'
 
     def repeat_steps(self, steps, board):
         x, y = self.position
@@ -79,7 +100,7 @@ class Knight(Piece):
         return self.take_step(self.knight_steps, board)
 
 
-class Rock(Piece):
+class Rook(Piece):
 
     def available_moves(self, board):
         return self.repeat_steps(self.rock_steps, board)
@@ -103,25 +124,45 @@ class King(Piece):
         return self.take_step(self.royal_steps, board)
 
 
-STARTING_BOARD = [
-    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-]
 
-for num in range(8):
-    STARTING_BOARD[6][num] = Pawn(WHITE, (num, 6))
-    STARTING_BOARD[1][num] = Pawn(BLACK, (num, 1))
+
+
 
 
 class Board():
-    def __init__(self):
-        self.array = STARTING_BOARD
+
+    STARTING_BOARD = [
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
+    [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],]
+
+    def __init__(self, test=False):
+        self.array = self.STARTING_BOARD
+        self.all_pieces = {BLACK: set(), WHITE: set()}
+        if not test:
+            self.place_pieces()
+            self.king = {BLACK: self.STARTING_BOARD[0][4], WHITE: self.STARTING_BOARD[7][4]}
+        # self.white_king = self.STARTING_BOARD[7][4]
+        # self.black_king = self.STARTING_BOARD[0][4]
+
+    def place_pieces(self):
+        placement = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
+        for num in range(8):
+            white_piece = placement[num](WHITE, (num, 7))
+            black_piece = placement[num](BLACK, (num, 0))
+            white_pawn = Pawn(WHITE, (num, 6))
+            black_pawn = Pawn(BLACK, (num, 1))
+            self.all_pieces[WHITE].update({white_piece, white_pawn})
+            self.all_pieces[BLACK].update({black_piece, black_pawn})
+            self.array[6][num] = white_pawn
+            self.array[7][num] = white_piece
+            self.array[1][num] = black_pawn
+            self.array[0][num] = black_piece
 
     def print_board(self):
         for line in self.array:
@@ -131,6 +172,18 @@ class Board():
         if self.array[position[1]][position[0]] == EMPTY:
             return None
         return self.array[position[1]][position[0]]
+
+    def is_stalemate(self):
+        pass
+
+    def is_check(self, on_color):
+        king = self.king[on_color]
+        attackers = self.all_pieces[opposite_color(on_color)]
+        for piece in attackers:
+            for target in piece.available_moves(self):
+                if target == king.position:
+                    return True
+        return False
 
     def is_blank(self, position):
         return self.array[position[1]][position[0]] == EMPTY
@@ -152,13 +205,7 @@ class Game():
         self.board = Board()
         self.player_1 = Player(websocket_1, WHITE)
         self.player_2 = Player(websocket_2, BLACK)
-        self.player_turn = self.player_1
 
-    def is_stalemate(self):
-        pass
-
-    def is_check(self):
-        pass
 
     def make_move(self, start_pos, end_pos, websocket):
         if self.player_1.websocket == websocket:
@@ -180,19 +227,20 @@ class Game():
 
         if target:
             target.position = None
-        piece.position = (end_pos[1], end_pos[0])
+            self.board.all_pieces[target.color].discard(target)
+        piece.position = (end_pos[0], end_pos[1])
         self.board.array[start_pos[1]][start_pos[0]] = EMPTY
         self.board.array[end_pos[1]][end_pos[0]] = piece
 
-        if self.player_turn == self.player_1:
-            print('1 here')
-            self.player_turn = self.player_2
-        else:
-            print('2 here')
-            self.player_turn = self.player_1
-
-        print(self.player_turn.websocket)
         return True
+
+
+
+
+
+
+
+
 
 
 
@@ -204,7 +252,7 @@ if __name__ == "__main__":
     # kn = Knight(BLACK, (4, 5))
     # STARTING_BOARD[5][4] = kn
 
-    # rock = Rock(WHITE, (4, 3))
+    # rock = Rock(BLACK, (4, 3))
     # STARTING_BOARD[3][4] = rock
 
     # bishop = Bishop(WHITE, (3, 4))
@@ -216,23 +264,53 @@ if __name__ == "__main__":
     # king = King(BLACK, (7, 7))
     # STARTING_BOARD[7][7] = king
 
-    # pawn = Pawn(WHITE, (5, 6))
-    # STARTING_BOARD[6][5] = pawn
+    # pawn_w1 = Pawn(WHITE, (3, 4))
+    # STARTING_BOARD[4][3] = pawn_w1
 
-    # pawn2 = Pawn(BLACK, (4, 1))
-    # STARTING_BOARD[1][4] = pawn2
+    # pawn_w2 = Pawn(WHITE, (2, 4))
+    # STARTING_BOARD[4][2] = pawn_w2
+
+    # pawn_b1 = Pawn(BLACK, (3, 3))
+    # STARTING_BOARD[3][3] = pawn_b1
+
+    # pawn_b2 = Pawn(BLACK, (2, 3))
+    # STARTING_BOARD[3][2] = pawn_b2
 
     game = Game(player_1, player_2)
-    game.board.print_board()
+    # game.board.print_board()
 
-    # print(kn.position)
-    # print(kn.available_moves(game.board))
+    # print(pawn_b1.position)
+    # print(pawn_b1.available_moves(game.board))
 
     print('\n')
     game.make_move((3,6),(3, 4), player_1)
     game.board.print_board()
+    print(game.board.get_piece((3, 4)).available_moves(game.board))
+
     print('\n')
     game.make_move((3,1),(3,3), player_2)
     game.board.print_board()
+    print(game.board.get_piece((3,3)).available_moves(game.board))
+
+    print('\n')
+    game.make_move((2,6),(2,4), player_1)
+    game.board.print_board()
+
+    print('\n')
+    game.make_move((2,1),(2,3), player_2)
+    game.board.print_board()
+
+    print('\n')
+    game.make_move((3,0),(0,3), player_2)
+    game.board.print_board()
     print('\n')
 
+    # print(game.board.all_pieces[WHITE])
+    # for piece in game.board.all_pieces[WHITE]:
+    #     print(piece)
+    # for piece in game.board.all_pieces[BLACK]:
+    #     print(piece)
+    print(game.board.king[BLACK])
+    print(game.board.king[WHITE])
+    print(game.board.is_check(BLACK))
+    print(game.board.is_check(WHITE))

@@ -20,7 +20,6 @@ async def main(websocket, path):
         await asyncio.sleep(1)
 
     player_2, player_1 = list(connected)[0], list(connected)[1]
-    # dict_connect = {list(connected)[0]:"player_1", list(connected)[1]:"player_2"}
     game = Game(player_2, player_1)
     await websocket.send(str(websocket==player_1))
 
