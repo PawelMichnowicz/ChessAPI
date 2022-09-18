@@ -10,13 +10,17 @@ def str_to_bool(str):
          raise Exception(str)
 
 # ogarnia wszystko co przychodzi z serwera
+
+
+
+
 async def listen():
 
     url = "ws://localhost:5050"
 
     async with websockets.connect(url, ping_interval=None) as ws:
 
-        my_turn = str_to_bool(await ws.recv())
+        my_turn = not str_to_bool(await ws.recv())
 
         while True:
 

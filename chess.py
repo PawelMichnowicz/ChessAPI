@@ -152,7 +152,13 @@ class Game():
         self.board = Board()
         self.player_1 = Player(websocket_1, WHITE)
         self.player_2 = Player(websocket_2, BLACK)
-        self.turn = self.player_1
+        self.player_turn = self.player_1
+
+    def is_stalemate(self):
+        pass
+
+    def is_check(self):
+        pass
 
     def make_move(self, start_pos, end_pos, websocket):
         if self.player_1.websocket == websocket:
@@ -165,28 +171,29 @@ class Game():
         piece = self.board.get_piece(start_pos)
         target = self.board.get_piece(end_pos)
 
-        if piece == EMPTY:
+        if not piece:
             raise Exception('That is empty field!')
         if piece.color != current_player.color:
             raise Exception('It is not your piece!')
         if end_pos not in piece.available_moves(self.board):
-            raise Exception("Invalid move!")
+            raise Exception(f"Invalid move! {piece.available_moves(self.board)}")
 
-        if target != EMPTY:
+        if target:
             target.position = None
-        piece.position = (end_pos[0], end_pos[1])
-        self.board.array[start_pos[0]][start_pos[1]] = EMPTY
-        self.board.array[end_pos[0]][end_pos[1]] = piece
+        piece.position = (end_pos[1], end_pos[0])
+        self.board.array[start_pos[1]][start_pos[0]] = EMPTY
+        self.board.array[end_pos[1]][end_pos[0]] = piece
 
-        if self.turn == self.player_1:
-            self.turn = self.player_2
+        if self.player_turn == self.player_1:
+            print('1 here')
+            self.player_turn = self.player_2
         else:
-            self.turn = self.player_1
+            print('2 here')
+            self.player_turn = self.player_1
 
+        print(self.player_turn.websocket)
         return True
 
-
-# stworzyć postać gracza
 
 
 if __name__ == "__main__":
@@ -194,42 +201,38 @@ if __name__ == "__main__":
     player_1 = Player('x', WHITE)
     player_2 = Player('y', BLACK)
 
-    kn = Knight(BLACK, (4, 5))
-    STARTING_BOARD[5][4] = kn
+    # kn = Knight(BLACK, (4, 5))
+    # STARTING_BOARD[5][4] = kn
 
-    rock = Rock(WHITE, (4, 3))
-    STARTING_BOARD[3][4] = rock
+    # rock = Rock(WHITE, (4, 3))
+    # STARTING_BOARD[3][4] = rock
 
-    bishop = Bishop(WHITE, (3, 4))
-    STARTING_BOARD[4][3] = bishop
+    # bishop = Bishop(WHITE, (3, 4))
+    # STARTING_BOARD[4][3] = bishop
 
-    queen = Queen(WHITE, (0, 0))
-    STARTING_BOARD[0][0] = queen
+    # queen = Queen(WHITE, (0, 0))
+    # STARTING_BOARD[0][0] = queen
 
-    king = King(BLACK, (7, 7))
-    STARTING_BOARD[7][7] = king
+    # king = King(BLACK, (7, 7))
+    # STARTING_BOARD[7][7] = king
 
-    pawn = Pawn(WHITE, (5, 6))
-    STARTING_BOARD[6][5] = pawn
+    # pawn = Pawn(WHITE, (5, 6))
+    # STARTING_BOARD[6][5] = pawn
 
-    pawn2 = Pawn(BLACK, (4, 1))
-    STARTING_BOARD[1][4] = pawn2
+    # pawn2 = Pawn(BLACK, (4, 1))
+    # STARTING_BOARD[1][4] = pawn2
 
     game = Game(player_1, player_2)
     game.board.print_board()
 
-    print(pawn.available_moves(game.board))
-
     # print(kn.position)
     # print(kn.available_moves(game.board))
 
-    # print('\n')
-    # game.make_move((6,2),(5, 2), player_1)
-    # game.board.print_board()
-    # print('\n')
-    # game.make_move((1,1),(2,1), player_2)
-    # game.board.print_board()
-    # print('\n')
-    # game.make_move((5,2),(4, 2), player_1)
-    # game.board.print_board()
-    # print('\n')
+    print('\n')
+    game.make_move((3,6),(3, 4), player_1)
+    game.board.print_board()
+    print('\n')
+    game.make_move((3,1),(3,3), player_2)
+    game.board.print_board()
+    print('\n')
+

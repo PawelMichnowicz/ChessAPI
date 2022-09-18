@@ -19,8 +19,9 @@ async def main(websocket, path):
         print("Waiting for second player")
         await asyncio.sleep(1)
 
-    player_1, player_2 = list(connected)[0], list(connected)[1]
-    game = Game(player_1, player_2)
+    player_2, player_1 = list(connected)[0], list(connected)[1]
+    # dict_connect = {list(connected)[0]:"player_1", list(connected)[1]:"player_2"}
+    game = Game(player_2, player_1)
     await websocket.send(str(websocket==player_1))
 
     async for message in websocket:
@@ -38,7 +39,7 @@ async def main(websocket, path):
 
         for conn in connected:
             if conn != websocket:
-                await conn.send("Opponent's move: " + message )
+                await conn.send("Now's move: " + str(game.player_turn) )
 
 async def start_server():
     print('Server started')
@@ -47,3 +48,4 @@ async def start_server():
 
 
 asyncio.run(start_server())
+
