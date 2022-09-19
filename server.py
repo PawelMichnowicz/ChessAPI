@@ -28,7 +28,7 @@ async def main(websocket, path):
             (x,y), (xx,yy) = (message).split(':')
             start_pos = (int(x),int(y))
             end_pos = (int(xx),int(yy))
-            game.make_move(start_pos, end_pos, websocket)
+            game.handle_move(start_pos, end_pos, websocket)
             await websocket.send('ok')
         except Exception as e:
             await websocket.send(str(e))
@@ -38,7 +38,7 @@ async def main(websocket, path):
 
         for conn in connected:
             if conn != websocket:
-                await conn.send("Now's move: " + str(game.player_turn) )
+                await conn.send("Opponent made move")
 
 async def start_server():
     print('Server started')
