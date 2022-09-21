@@ -1,17 +1,14 @@
 import websockets
 import asyncio
 
-def str_to_bool(str):
-    if str == 'True':
-         return True
-    elif str == 'False':
-         return False
+
+def str_to_bool(value):
+    if value == 'True':
+        return True
+    elif value == 'False':
+        return False
     else:
-         raise Exception(str)
-
-# ogarnia wszystko co przychodzi z serwera
-
-
+        raise Exception(value)
 
 
 async def listen():
@@ -21,21 +18,21 @@ async def listen():
     async with websockets.connect(url, ping_interval=None) as ws:
 
         my_turn = not str_to_bool(await ws.recv())
-
         while True:
 
             if my_turn:
-                while True:
+                # while True:
+                while my_turn:
                     await ws.send(input("Your Turn: "))
                     msg = await ws.recv()
                     print(msg)
-                    if msg=='ok':
-                        break
+                    if msg == 'ok':
+                        my_turn = False
             else:
                 print('Waiting for opp......')
                 msg = await ws.recv()
                 print(f"Opponent made: {msg}")
-            my_turn = not my_turn
+                my_turn = True
 
 
 asyncio.run(listen())

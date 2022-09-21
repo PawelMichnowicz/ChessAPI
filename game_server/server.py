@@ -1,15 +1,14 @@
-from sqlite3 import connect
 import websockets
 import asyncio
 import itertools
 
-from chess import Game, BLACK, WHITE
+from game_server.chess import Game, BLACK, WHITE
 PORT = 5050
 
 connected = set()
 
 # ogranicz liczbe graczy do dwóch
-# popraw waiting -> niech idzie do gracza
+# popraw waiting for sec... -> niech idzie do gracza
 
 async def main(websocket, path):
     print("Connected")

@@ -7,14 +7,14 @@ EMPTY = ' '
 
 # szach z odsłony - done
 # pat i szach-mat - done
-# sprawdź stykanie króli
-
+# promocja pionka
 # Obsługa notyfikacji szachowej
 # zapis ruchów
 # roszada
 # bicie w przelocie
 # zasada 50ruchów
 # 3krotne powtórzenie
+
 
 
 def opposite_color(color):
@@ -25,40 +25,44 @@ def opposite_color(color):
     else:
         raise Exception('Invalid color')
 
+def postion_to_code(position):
+    letter_2 = chr(position[0] + 97)
+    number_2 = position[1] +1
+    return f'{letter_2}{number_2}'
+
 
 class Piece():
 
-    rock_steps = [[0, 1], [0, -1], [1, 0], [-1, 0]]
+    rook_steps = [[0, 1], [0, -1], [1, 0], [-1, 0]]
     bishop_steps = [[1, 1], [1, -1], [-1, -1], [-1, 1]]
-    royal_steps = [*rock_steps, *bishop_steps]
+    royal_steps = [*rook_steps, *bishop_steps]
     knight_steps = [[y_step, x_step] for x_step in [-2, -1, +1, +2]
                     for y_step in [-2, -1, +1, +2] if abs(x_step) != abs(y_step)]
     pawn_steps = {BLACK: 1, WHITE: -1}
 
-    def __init__(self, color, position):
+    def __init__(self, color, position, position_code=None):
         self.color = color
         self.position = position
+        self.position_code = position_code
 
     def __repr__(self) -> str:
-        if self.__class__.__name__ == Knight.__name__:
-            return f"N-{self.color[0]}"
         return f"{self.__class__.__name__[0]}-{self.color[0]}"
 
     def __str__(self) -> str:
-        return f'{self.__class__.__name__} {self.position}'
+        return f'{self.__class__.__name__}-{self.color[0].upper()} {self.position_code}'
 
     def repeat_steps(self, steps, board):
-        x, y = self.position
-        list_moves = []
-        for step in steps:
-            range = 1
-            while True:
-                new_position = (x+range*step[1], y+range*step[0])
-                if board.is_in(new_position) and board.is_blank(new_position):
-                    list_moves.append(new_position)
+        x, y = self.position #
+        list_moves = [] #
+        for step in steps: #
+            range = 1 # -
+            while True: # -
+                new_position = (x+range*step[1], y+range*step[0]) # /range
+                if board.is_in(new_position) and board.is_blank(new_position): #
+                    list_moves.append(postion_to_code(new_position))
                     range += 1
                 elif board.is_in(new_position) and board.get_piece(new_position).color != self.color:
-                    list_moves.append(new_position)
+                    list_moves.append(postion_to_code(new_position))
                     break
                 else:
                     break
@@ -70,7 +74,7 @@ class Piece():
         for step in steps:
             new_position = (x+step[1], y+step[0])
             if board.is_in(new_position) and (board.is_blank(new_position) or board.get_piece(new_position).color != self.color):
-                list_moves.append(new_position)
+                list_moves.append(postion_to_code(new_position))
         return list_moves
 
     def pawn_moves(self, steps, board):
@@ -78,9 +82,9 @@ class Piece():
         list_moves = []
         new_position = (x, y+steps[self.color])
         if board.is_in(new_position) and board.is_blank(new_position):
-            list_moves.append(new_position)
+            list_moves.append(postion_to_code(new_position))
             if ((self.color == BLACK and y == 1) or (self.color == WHITE and y == 6)) and board.is_blank((x, y+2*steps[self.color])):
-                list_moves.append((x, y+2*steps[self.color]))
+                list_moves.append(postion_to_code((x, y+2*steps[self.color])))
         return list_moves
 
     def pawn_captures(self, steps, board):
@@ -88,16 +92,19 @@ class Piece():
         list_moves = []
         for new_position in [(x-1, y+steps[self.color]), (x+1, y+steps[self.color])]:
             if board.is_in(new_position) and not board.is_blank(new_position) and board.get_piece(new_position).color != self.color:
-                list_moves.append(new_position)
+                list_moves.append(postion_to_code(new_position))
         return list_moves
 
-    def legal_moves_if_check(self, possible_moves, board):
+    def possible_moves_if_check(self, possible_moves, board):
         legal_moves = []
         for move in possible_moves:
-            potential_board = board.simulate_move(self.position, move)
+            potential_board = board.simulate_move(self.position_code, move)
             if not potential_board.is_check(on_color=self.color):
                 legal_moves.append(move)
             return legal_moves
+
+
+
 
 
 class Pawn(Piece):
@@ -107,25 +114,28 @@ class Pawn(Piece):
             *self.pawn_moves(self.pawn_steps, board), *self.pawn_captures(self.pawn_steps, board)]
         if not check:
             return possible_moves
-        return self.legal_moves_if_check(possible_moves, board)
+        return self.possible_moves_if_check(possible_moves, board)
 
 
 class Knight(Piece):
+
+    def __repr__(self):
+        return f'N-{self.color[0]}'
 
     def available_moves(self, board, check=False):
         possible_moves = self.take_step(self.knight_steps, board)
         if not check:
             return possible_moves
-        return self.legal_moves_if_check(possible_moves, board)
+        return self.possible_moves_if_check(possible_moves, board)
 
 
 class Rook(Piece):
 
     def available_moves(self, board, check=False):
-        possible_moves = self.repeat_steps(self.rock_steps, board)
+        possible_moves = self.repeat_steps(self.rook_steps, board)
         if not check:
             return possible_moves
-        return self.legal_moves_if_check(possible_moves, board)
+        return self.possible_moves_if_check(possible_moves, board)
 
 
 class Bishop(Piece):
@@ -134,7 +144,7 @@ class Bishop(Piece):
         possible_moves = self.repeat_steps(self.bishop_steps, board)
         if not check:
             return possible_moves
-        return self.legal_moves_if_check(possible_moves, board)
+        return self.possible_moves_if_check(possible_moves, board)
 
 
 class Queen(Piece):
@@ -143,7 +153,7 @@ class Queen(Piece):
         possible_moves = self.repeat_steps(self.royal_steps, board)
         if not check:
             return possible_moves
-        return self.legal_moves_if_check(possible_moves, board)
+        return self.possible_moves_if_check(possible_moves, board)
 
 
 class King(Piece):
@@ -154,7 +164,7 @@ class King(Piece):
     def available_moves(self, board, check=False):
         legal_moves = self.possible_moves(board)
         for move in self.possible_moves(board):
-            potential_board = board.simulate_move(self.position, move)
+            potential_board = board.simulate_move(self.position_code, move)
             attackers = potential_board.all_pieces[opposite_color(self.color)].copy()
             attackers.remove(potential_board.king[opposite_color(self.color)])
             for piece in attackers:
@@ -164,28 +174,36 @@ class King(Piece):
         return legal_moves
 
 
+# Board["a"][1]=["A1"]
 
-class Board():
 
-    STARTING_BOARD = [
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '],
-        [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '], ]
 
-    def __init__(self, test=False):
-        if not test:
-            self.array = self.STARTING_BOARD
-            self.all_pieces = {BLACK: set(), WHITE: set()}
-            self.place_pieces()
-            self.king = {
-                BLACK: self.STARTING_BOARD[0][4], WHITE: self.STARTING_BOARD[7][4]}
 
-    def place_pieces(self):
+
+class Board(object):
+
+
+    def __init__(self):
+
+        self.gameboard = [8*[EMPTY] for _ in range(8)]
+        self.all_pieces = {BLACK: set(), WHITE: set()}
+        self.generate_pieces_on_board()
+        self.king = {BLACK: self['e1'], WHITE: self['e8']}
+
+    def __getitem__(self, notation):
+        x_idx = ord(notation[0]) - 97
+        y_idx = int(notation[1]) - 1
+        return self.gameboard[y_idx][x_idx]
+
+    def __setitem__(self, notation, piece):
+        x_idx = ord(notation[0]) - 97
+        y_idx = int(notation[1]) - 1
+        if isinstance(piece, Piece):
+            piece.position_code = notation
+            piece.position = (x_idx, y_idx)
+        self.gameboard[y_idx][x_idx] = piece
+
+    def generate_pieces_on_board(self):
         placement = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
         for num in range(8):
             white_piece = placement[num](WHITE, (num, 7))
@@ -194,21 +212,17 @@ class Board():
             black_pawn = Pawn(BLACK, (num, 1))
             self.all_pieces[WHITE].update({white_piece, white_pawn})
             self.all_pieces[BLACK].update({black_piece, black_pawn})
-            self.array[6][num] = white_pawn
-            self.array[7][num] = white_piece
-            self.array[1][num] = black_pawn
-            self.array[0][num] = black_piece
+            y_idx = chr(num+97)
+            self[f'{y_idx}7'] = white_pawn
+            self[f'{y_idx}8'] = white_piece
+            self[f'{y_idx}2'] = black_pawn
+            self[f'{y_idx}1'] = black_piece
 
     def print_board(self):
-        for line in self.array:
+        for line in self.gameboard:
             print(line)
 
-    def get_piece(self, position):
-        if self.array[position[1]][position[0]] == EMPTY:
-            return None
-        return self.array[position[1]][position[0]]
-
-    def is_no_legal_move(self, on_color, check=False):
+    def is_stalemate(self, on_color, check=False):
         for piece in self.all_pieces[on_color]:
             if piece.available_moves(self, check):
                 return False
@@ -223,26 +237,36 @@ class Board():
                     return True
         return False
 
-    def is_blank(self, position):
-        return self.array[position[1]][position[0]] == EMPTY
+    def is_blank(self, position): #here
+        if isinstance(position, str):
+            return self[position] ==  EMPTY
+        return self.gameboard[position[1]][position[0]] == EMPTY
 
     def is_in(self, position):
         return -1 < position[1] < 8 and -1 < position[0] < 8
 
     def make_move(self, start_pos, end_pos, test_board=None):
+
+
         if test_board:
             board = test_board
         else:
             board = self
 
-        piece = board.get_piece(start_pos)
-        target = board.get_piece(end_pos)
-        if target:
+        piece = board[start_pos]
+        target = board[end_pos]
+
+
+        if isinstance(target, Piece):
             target.position = None
             board.all_pieces[target.color].discard(target)
-        piece.position = (end_pos[0], end_pos[1])
-        board.array[start_pos[1]][start_pos[0]] = EMPTY
-        board.array[end_pos[1]][end_pos[0]] = piece
+        # board.gameboard[end_pos[1]][end_pos[0]] = piece
+        # piece.position = (end_pos[0], end_pos[1])
+        board[end_pos] = piece
+
+
+        # board.gameboard[start_pos[1]][start_pos[0]] = EMPTY
+        board[start_pos] = EMPTY
         return True
 
     def simulate_move(self, start_pos, end_pos):
@@ -275,12 +299,13 @@ class Game():
             raise Exception('You are not a participant of game')
 
         check = self.board.is_check(on_color=current_player.color)
-        piece = self.board.get_piece(start_field)
+        # piece = self.board.get_piece(start_field)
+        piece = self.board[start_field]
         if not piece:
             raise Exception('That is empty field!')
         if piece.color != current_player.color:
             raise Exception('It is not your piece!')
-        if end_field not in piece.available_moves(self.board, check=check):
+        if end_field not in piece.available_moves(self.board, check=check): #
             raise Exception(
                 f"Invalid move! Possibilities of this piece: {piece.available_moves(self.board, check=check)}")
 
@@ -289,10 +314,10 @@ class Game():
             raise Exception("Illegal move due to attack on your king")
 
         if (potential_board.is_check(on_color=opposite_color(current_player.color)) and
-                potential_board.is_no_legal_move(on_color=opposite_color(current_player.color), check=True)):
+                potential_board.is_stalemate(on_color=opposite_color(current_player.color), check=True)):
             self.win_game()
 
-        if potential_board.is_no_legal_move(on_color=opposite_color(current_player.color)):
+        if potential_board.is_stalemate(on_color=opposite_color(current_player.color)):
             self.draw_game()
 
         self.board.make_move(start_field, end_field)
@@ -304,44 +329,50 @@ class Game():
         print("Are ya winning, son?")
 
 
+
 if __name__ == "__main__":
 
     player_1 = Player('player_1', WHITE)
     player_2 = Player('player_2', BLACK)
     game = Game(player_1, player_2)
 
+    # print(game.board['c3'])
+    # game.board.print_board()
+
+
+
+
 ####################################################
-# Szfczyk
+## Szfczyk
 
-    print('\n')
-    game.handle_move((4, 6), (4, 4), player_1)
+    # print('\n')
+    game.handle_move('e7', 'e5', player_1)
     game.board.print_board()
 
-    print('\n')
-    game.handle_move((4, 1), (4, 3), player_2)
-    game.board.print_board()
+#     print('\n')
+#     game.handle_move((4, 1), (4, 3), player_2)
+#     game.board.print_board()
 
-    print('\n')
-    game.handle_move((3, 7), (5, 5), player_1)
-    game.board.print_board()
+#     print('\n')
+#     game.handle_move((3, 7), (5, 5), player_1)
+#     game.board.print_board()
 
-    print('\n')
-    game.handle_move((1, 0), (0, 2), player_2)
-    game.board.print_board()
+#     print('\n')
+#     game.handle_move((1, 0), (0, 2), player_2)
+#     game.board.print_board()
 
-    print('\n')
-    game.handle_move((5, 7), (2, 4), player_1)
-    game.board.print_board()
+#     print('\n')
+#     game.handle_move((5, 7), (2, 4), player_1)
+#     game.board.print_board()
 
-    print('\n')
-    game.handle_move((1, 1), (1, 2), player_2)
-    game.board.print_board()
+#     print('\n')
+#     game.handle_move((1, 1), (1, 2), player_2)
+#     game.board.print_board()
 
-    print('\n')
-    game.handle_move((5, 5), (5, 1), player_1)
-    game.board.print_board()
+#     print('\n')
+#     game.handle_move((5, 5), (5, 1), player_1)
+# # game.board.print_board()
 
-    print(game.board.king[BLACK].available_moves(game.board))
 
 ####################################################
 # # Mat w dwóch
