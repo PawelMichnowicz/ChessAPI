@@ -17,7 +17,7 @@ async def listen():
 
     async with websockets.connect(url, ping_interval=None) as ws:
 
-        my_turn = not str_to_bool(await ws.recv())
+        my_turn = str_to_bool(await ws.recv())
         while True:
 
             if my_turn:
@@ -25,13 +25,13 @@ async def listen():
                 while my_turn:
                     await ws.send(input("Your Turn: "))
                     msg = await ws.recv()
-                    print(msg)
                     if msg == 'ok':
+                        board = await ws.recv()
+                        print(board)
                         my_turn = False
             else:
                 print('Waiting for opp......')
-                msg = await ws.recv()
-                print(f"Opponent made: {msg}")
+                print(await ws.recv())
                 my_turn = True
 
 
