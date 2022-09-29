@@ -3,6 +3,8 @@ from graphene_django import DjangoObjectType
 from django.contrib.auth import get_user_model
 import graphql_jwt
 from graphql_jwt.decorators import login_required
+from sesame.utils import get_token
+
 
 class UserType(DjangoObjectType):
     class Meta:
@@ -12,7 +14,7 @@ class UserType(DjangoObjectType):
 
 class Query(graphene.ObjectType):
     all_users = graphene.List(UserType)
-    me = graphene.Field(UserType)
+    me = graphene.String()
 
     @login_required
     def resolve_all_users(root, info):
@@ -22,7 +24,9 @@ class Query(graphene.ObjectType):
         user = info.context.user
         if not user.is_authenticated:
             raise Exception("Authentication credentials were not provided")
-        return user
+        token = get_token(user)
+        return token
+
 
 class Mutation(graphene.ObjectType):
     token_auth = graphql_jwt.ObtainJSONWebToken.Field()

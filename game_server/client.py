@@ -16,12 +16,13 @@ async def listen():
     url = "ws://localhost:5050"
 
     async with websockets.connect(url, ping_interval=None) as ws:
+        print('Connected')
 
+        await ws.send(input("Provide id of your game: "))
         my_turn = str_to_bool(await ws.recv())
         while True:
 
             if my_turn:
-                # while True:
                 while my_turn:
                     await ws.send(input("Your Turn: "))
                     msg = await ws.recv()
@@ -29,6 +30,8 @@ async def listen():
                         board = await ws.recv()
                         print(board)
                         my_turn = False
+                    else:
+                        print(msg)
             else:
                 print('Waiting for opp......')
                 print(await ws.recv())
@@ -36,3 +39,5 @@ async def listen():
 
 
 asyncio.run(listen())
+
+

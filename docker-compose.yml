@@ -1,0 +1,21 @@
+version: "3.9"
+
+services:
+
+  game:
+    build: ./game_server
+    ports:
+      - "5050:5050"
+    command: bash -c "python3 game/server.py"
+    volumes:
+      - ./game_server:/game
+    depends_on:
+      - app
+
+  app:
+    build: ./app
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./app:/code
+    command: bash -c "python manage.py runserver 0.0.0.0:8000"

@@ -189,7 +189,7 @@ class Board:
         return self.gameboard[y_idx][x_idx]
 
     def __setitem__(self, notation, piece):
-        x_idx = ord(notation[0]) - 97
+        x_idx = ord(notation[0]) - 97 #komenta
         y_idx = int(notation[1]) - 1
         if isinstance(piece, Piece):
             piece.position_code = notation
@@ -292,10 +292,20 @@ class Player():
 
 class Game():
 
-    def __init__(self):
+    instances = []
+
+    def __init__(self, id):
         self.board = Board()
         self.player_1 = None
         self.player_2 = None
+        self.id = id
+        Game.instances.append(self)
+
+    @classmethod
+    def get(cls, id):
+        return [inst for inst in cls.instances if inst.id == id]
+
+
 
     def place_players(self, websocket_1, websocket_2):
         self.player_1 = Player(websocket_1, Color.WHITE)
