@@ -20,7 +20,7 @@ class Query(graphene.ObjectType):
     def resolve_all_users(root, info):
         return get_user_model().objects.all()
 
-    def resolve_me(rooti, info):
+    def resolve_me(root, info):
         user = info.context.user
         if not user.is_authenticated:
             raise Exception("Authentication credentials were not provided")

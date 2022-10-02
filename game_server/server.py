@@ -1,13 +1,16 @@
-import functools
 import websockets
 import asyncio
-
+import requests
+import json
 from chess import Game
 
+
+
 PORT = 5050
+QUERY_GET_CHALLANGE = 'query {{challange (gameId: "{}"){{id fromPlayer {{username}} toPlayer {{username}} }} }}'
+URL = 'http://app:8000/graphql'
 
 
-# ogranicz liczbe graczy do dwóch
 connected = dict()
 
 async def main(websocket, game):
@@ -21,7 +24,7 @@ async def main(websocket, game):
         print("Waiting for second player")
         await asyncio.sleep(0.5)
 
-    player_1, player_2 = list(connected[game.id])[0], list(connected[game.id])[1]
+    player_1, player_2 = list(connected[game.id])[0], list(connected[game.id])[1] # popraw
     game.place_players(player_1, player_2)
     await websocket.send(str(websocket == player_1))
 
@@ -44,13 +47,31 @@ async def main(websocket, game):
 
 
 async def create_game(websocket):
+    while True:
+        try:
+            game_id = await websocket.recv()
+            query = QUERY_GET_CHALLANGE.format(game_id)
+            response = requests.post(url=URL, json={'query': query})
+            json_data = json.loads(response.text)
+            if not json_data['data']['challange']:
+                raise Exception("Game with this id doesn't exists")
+            await websocket.send("id_ok")
 
-    game_id = await websocket.recv()
+            username = await websocket.recv()
+            if json_data['data']['challange']['fromPlayer']['username'] != username and json_data['data']['challange']['toPlayer']['username'] != username:
+                raise Exception("You are not involved into this game")
+            await websocket.send("username_ok")
+
+            break
+        except Exception as e:
+                await websocket.send(str(e))
+                continue
+
     game = Game.get(game_id)
     if not game:
         game = Game(game_id)
     else:
-        game = game[0]
+        game = game[0] #zmień
     return game
 
 
