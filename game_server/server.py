@@ -71,7 +71,7 @@ async def create_game(websocket):
     if not game:
         game = Game(game_id)
     else:
-        game = game[0] #zmień
+        game = game[0] 
     return game
 
 
