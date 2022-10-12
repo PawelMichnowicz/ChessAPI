@@ -2,7 +2,7 @@ import copy
 from abc import ABC, abstractmethod
 
 from enum import Enum
-
+from graph import send_result
 
 class Color(Enum):
     WHITE = 'white'
@@ -51,6 +51,7 @@ class Piece(ABC):
         self.color = color
         self.position = position
         self.position_code = position_code
+        self.last_move = None
 
     def __repr__(self) -> str:
         return f"{self.__class__.__name__[0]}-{self.color.value[0]}"
@@ -171,17 +172,35 @@ class King(Piece):
             potential_board = board.simulate_move(self.position_code, move)
             if potential_board.is_check(on_color=self.color):
                 possible_moves.remove(move)
+
+        # check possible castling
+        if all([not self.last_move,
+                not board.rook_a[self.color].last_move,
+                board.is_blank(f'b{self.position_code[1]}'),
+                board.is_blank(f'c{self.position_code[1]}'),
+                board.is_blank(f'd{self.position_code[1]}'),
+                ]):
+            possible_moves.append(f'c{self.position_code[1]}')
+        if all([not self.last_move,
+                not board.rook_h[self.color].last_move,
+                board.is_blank(f'g{self.position_code[1]}'),
+                board.is_blank(f'f{self.position_code[1]}'),
+                ]):
+            possible_moves.append(f'g{self.position_code[1]}')
+
         return possible_moves
 
 
 class Board:
 
     def __init__(self):
-
         self.gameboard = [8*[EMPTY] for _ in range(8)]
         self.all_pieces = {Color.BLACK: set(), Color.WHITE: set()}
         self.generate_pieces_on_board()
         self.king = {Color.WHITE: self['e1'], Color.BLACK: self['e8']}
+        self.rook_a = {Color.WHITE: self['a1'], Color.BLACK: self['a8']}
+        self.rook_h = {Color.WHITE: self['h1'], Color.BLACK: self['h8']}
+        self.record_moves = {0: []}
 
     def __getitem__(self, notation):
         x_idx = ord(notation[0]) - 97
@@ -189,7 +208,7 @@ class Board:
         return self.gameboard[y_idx][x_idx]
 
     def __setitem__(self, notation, piece):
-        x_idx = ord(notation[0]) - 97 #komenta
+        x_idx = ord(notation[0]) - 97  # komenta
         y_idx = int(notation[1]) - 1
         if isinstance(piece, Piece):
             piece.position_code = notation
@@ -241,6 +260,14 @@ class Board:
             return position[0] in 'abcdefgh' and 0 < int(position[1:]) <= 8
         return -1 < position[1] < 8 and -1 < position[0] < 8
 
+    def save_move(self, start_field, end_field, piece):
+        num_move = max(self.record_moves.keys())
+        piece.last_move = num_move
+        if piece.color == Color.WHITE:
+            self.record_moves[num_move+1] = [f'{start_field}:{end_field}']
+        else:
+            self.record_moves[num_move].append(f'{start_field}:{end_field}')
+
     def make_move(self, start_field, end_field, simulate_board=None):
         if simulate_board:
             board = simulate_board
@@ -249,12 +276,29 @@ class Board:
 
         piece = board[start_field]
         target = board[end_field]
-
-        if isinstance(target, Piece):
+        if isinstance(target, Piece): #if take piece
             target.position = None
             board.all_pieces[target.color].discard(target)
+        elif isinstance(piece, King) and not piece.last_move: #if castling
+            row = end_field[1]
+            match end_field[0]:
+                case 'c':
+                    board[f'c{row}'] = board[f'e{row}']
+                    board[f'd{row}'] = board[f'a{row}']
+                    board[f'a{row}'] = EMPTY
+                    board[f'e{row}'] = EMPTY
+                case 'g':
+                    board[f'g{row}'] = board[f'e{row}']
+                    board[f'f{row}'] = board[f'h{row}']
+                    board[f'e{row}'] = EMPTY
+                    board[f'h{row}'] = EMPTY
+                case _:
+                    pass
         board[end_field] = piece
         board[start_field] = EMPTY
+
+        if not simulate_board:
+            self.save_move(start_field, end_field, piece)
         return True
 
     def simulate_move(self, start_pos, end_pos):
@@ -276,16 +320,19 @@ class Board:
         potential_board = self.simulate_move(start_field, end_field)
         if potential_board.is_check(on_color=current_player.color):
             raise Exception("Illegal move due to attack on your king")
+
         if (potential_board.is_check(on_color=opposite_color(current_player.color)) and
                 potential_board.is_stalemate(on_color=opposite_color(current_player.color), check=True)):
-            raise Exception('Check-mate!')
+            raise Exception('Check-mate')
+
         if potential_board.is_stalemate(on_color=opposite_color(current_player.color)):
-            raise Exception('Draw!')
+            raise Exception('Draw')
 
 
 class Player():
 
-    def __init__(self, websocket, color):
+    def __init__(self, websocket, username, color):
+        self.username = username
         self.websocket = websocket
         self.color = color
 
@@ -295,21 +342,21 @@ class Game():
     instances = []
 
     def __init__(self, id):
+        print('here_1')
         self.board = Board()
         self.player_1 = None
         self.player_2 = None
+        self.winner = None
         self.id = id
         Game.instances.append(self)
 
-    @classmethod
+    @ classmethod
     def get(cls, id):
         return [inst for inst in cls.instances if inst.id == id]
 
-
-
-    def place_players(self, websocket_1, websocket_2):
-        self.player_1 = Player(websocket_1, Color.WHITE)
-        self.player_2 = Player(websocket_2, Color.BLACK)
+    def place_players(self, player_1, player_2):
+        self.player_1 = Player(player_1['websocket'], player_1['username'], Color.WHITE)
+        self.player_2 = Player(player_2['websocket'], player_2['username'], Color.BLACK)
 
     def handle_move(self, start_field, end_field, websocket):
         if self.player_1.websocket == websocket:
@@ -332,11 +379,19 @@ class Game():
             board_string += '\n'
         return board_string
 
+    def end_with_win(self, winner_websocket):
+        if self.player_1.websocket == winner_websocket:
+            self.winner = self.player_1
+        else:
+            self.winner = self.player_2
+        result = send_result(self.winner.username, self.id)
+        print(result)
+
+
 
 if __name__ == "__main__":
 
-
-    game = Game()
+    game = Game('e')
     game.place_players('player_1', 'player_2')
     player_1 = game.player_1
     player_2 = game.player_2
@@ -346,16 +401,74 @@ if __name__ == "__main__":
 
 
 ####################################################
-# Szfczyk
+# Roszada A
 
-    # print('\n')
+    # game.handle_move('b1', 'a3', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
 
-    game.handle_move('e2', 'e4', player_1.websocket)
-    print(game.get_chessboard(player_1.websocket))
+    # game.handle_move('b8', 'a6', player_2.websocket)
+    # print(game.get_chessboard(player_2.websocket))
+
+    # game.handle_move('d2', 'd3', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
+
+    # game.handle_move('d7', 'd6', player_2.websocket)
+    # print(game.get_chessboard(player_2.websocket))
+
+    # game.handle_move('c1', 'e3', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
+
+    # game.handle_move('c8', 'e6', player_2.websocket)
+    # print(game.get_chessboard(player_2.websocket))
 
 
-    game.handle_move('b7', 'b6', player_2.websocket)
-    print(game.get_chessboard(player_2.websocket))
+    # game.handle_move('d1', 'd2', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
+
+    # game.handle_move('d8', 'd7', player_2.websocket)
+    # print(game.get_chessboard(player_2.websocket))
+
+    # print(game.board.king[Color.WHITE].available_moves(game.board))
+    # print(game.board.king[Color.BLACK].available_moves(game.board))
+
+    # game.handle_move('e1', 'c1', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
+
+
+####################################################
+# Roszada B
+
+    # game.handle_move('g1', 'h3', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
+
+    # game.handle_move('g8', 'h6', player_2.websocket)
+    # print(game.get_chessboard(player_2.websocket))
+
+    # game.handle_move('e2', 'e3', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
+
+    # game.handle_move('e7', 'e6', player_2.websocket)
+    # print(game.get_chessboard(player_2.websocket))
+
+    # game.handle_move('f1', 'd3', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
+
+    # game.handle_move('f8', 'd6', player_2.websocket)
+    # print(game.get_chessboard(player_2.websocket))
+
+    # print(game.board.king[Color.WHITE].available_moves(game.board))
+    # print(game.board.king[Color.BLACK].available_moves(game.board))
+
+    # game.handle_move('e1', 'g1', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
+
+    # game.handle_move('e8', 'g8', player_2.websocket)
+    # print(game.get_chessboard(player_2.websocket))
+
+
+##########################################
+    # print(game.board.king[Color.WHITE].position_code[1])
+    # print(game.board['c5'] == EMPTY)
 
     # game.handle_move('d1', 'f3', player_1)
     # # game.board.print_board()

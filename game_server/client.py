@@ -32,6 +32,7 @@ async def listen():
                 continue
             break
 
+        end_game = False
         my_turn = str_to_bool(await ws.recv())
         while True:
             if my_turn:
@@ -42,12 +43,25 @@ async def listen():
                         board = await ws.recv()
                         print(board)
                         my_turn = False
-                    else:
+                    elif msg == 'Check-mate':
+                        board = await ws.recv()
+                        print(board)
                         print(msg)
+                        end_game = True
+                        break
+                    else: # incorrect move
+                        print(msg)
+                if end_game:
+                    break
             else:
-                print('Waiting for opp......')
-                print(await ws.recv())
+                print('Waiting for opp......') #
+                msg = await ws.recv()
+                if msg == 'end_game':
+                    break
+                print(msg) # print opponent's move and chessboard
                 my_turn = True
+
+        print(await ws.recv()) # print result of game
 
 
 asyncio.run(listen())
