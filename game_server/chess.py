@@ -4,6 +4,7 @@ from abc import ABC, abstractmethod
 from enum import Enum
 from graph import send_result
 
+
 class Color(Enum):
     WHITE = 'white'
     BLACK = 'black'
@@ -57,7 +58,7 @@ class Piece(ABC):
         return f"{self.__class__.__name__[0]}-{self.color.value[0]}"
 
     def __str__(self) -> str:
-        return f'{self.__class__.__name__}-{self.color.value[0]} {self.position_code}'
+        return f'{self.__class__.__name__[0]}-{self.color.value[0]}' #{self.position_code}' #delete
 
     @abstractmethod
     def available_moves(self):
@@ -200,7 +201,13 @@ class Board:
         self.king = {Color.WHITE: self['e1'], Color.BLACK: self['e8']}
         self.rook_a = {Color.WHITE: self['a1'], Color.BLACK: self['a8']}
         self.rook_h = {Color.WHITE: self['h1'], Color.BLACK: self['h8']}
-        self.record_moves = {0: []}
+        self.record_of_moves = {0: []}
+        self.record_of_gameboard = {'one_rep': [],
+                                    'two_rep': [],
+                                    'three_rep': []
+                                    }
+        self.save_gameboard(self.gameboard)
+        self.fifty_move_count = 0
 
     def __getitem__(self, notation):
         x_idx = ord(notation[0]) - 97
@@ -208,7 +215,7 @@ class Board:
         return self.gameboard[y_idx][x_idx]
 
     def __setitem__(self, notation, piece):
-        x_idx = ord(notation[0]) - 97  # komenta
+        x_idx = ord(notation[0]) - 97
         y_idx = int(notation[1]) - 1
         if isinstance(piece, Piece):
             piece.position_code = notation
@@ -261,12 +268,21 @@ class Board:
         return -1 < position[1] < 8 and -1 < position[0] < 8
 
     def save_move(self, start_field, end_field, piece):
-        num_move = max(self.record_moves.keys())
+        num_move = max(self.record_of_moves.keys())
         piece.last_move = num_move
         if piece.color == Color.WHITE:
-            self.record_moves[num_move+1] = [f'{start_field}:{end_field}']
+            self.record_of_moves[num_move+1] = [f'{start_field}:{end_field}']
         else:
-            self.record_moves[num_move].append(f'{start_field}:{end_field}')
+            self.record_of_moves[num_move].append(f'{start_field}:{end_field}')
+
+    def save_gameboard(self, gameboard):
+        str_gameboard = [piece.__str__() for row in gameboard for piece in row]
+        if str_gameboard in self.record_of_gameboard['two_rep']:
+            self.record_of_gameboard['three_rep'].append(str_gameboard)
+        elif str_gameboard in self.record_of_gameboard['one_rep']:
+            self.record_of_gameboard['two_rep'].append(str_gameboard)
+        else:
+            self.record_of_gameboard['one_rep'].append(str_gameboard)
 
     def make_move(self, start_field, end_field, simulate_board=None):
         if simulate_board:
@@ -276,10 +292,14 @@ class Board:
 
         piece = board[start_field]
         target = board[end_field]
-        if isinstance(target, Piece): #if take piece
+        if isinstance(piece, Pawn):
+            self.fifty_move_count = 0
+        if isinstance(target, Piece):  # if take piece
             target.position = None
             board.all_pieces[target.color].discard(target)
-        elif isinstance(piece, King) and not piece.last_move: #if castling
+            if not simulate_board:
+                self.fifty_move_count = 0
+        elif isinstance(piece, King) and not piece.last_move:  # if castling
             row = end_field[1]
             match end_field[0]:
                 case 'c':
@@ -299,16 +319,18 @@ class Board:
 
         if not simulate_board:
             self.save_move(start_field, end_field, piece)
+            self.save_gameboard(self.gameboard)
+            self.fifty_move_count += 1
         return True
 
     def simulate_move(self, start_pos, end_pos):
-        board_copy = copy.deepcopy(self)
+        board_copy=copy.deepcopy(self)
         self.make_move(start_pos, end_pos, board_copy)
         return board_copy
 
-    def check_move_is_legal(self, start_field, end_field, current_player):
-        piece = self[start_field]
-        check = self.is_check(on_color=current_player.color)
+    def check_if_legal_move(self, start_field, end_field, current_player):
+        piece=self[start_field]
+        check=self.is_check(on_color=current_player.color)
         if piece == EMPTY:
             raise Exception('That is empty field!')
         if piece.color != current_player.color:
@@ -317,37 +339,41 @@ class Board:
             raise Exception(
                 f"Invalid move! Possibilities of this piece: {piece.available_moves(self, check=check)}")
 
-        potential_board = self.simulate_move(start_field, end_field)
+        potential_board=self.simulate_move(start_field, end_field)
         if potential_board.is_check(on_color=current_player.color):
             raise Exception("Illegal move due to attack on your king")
 
-        if (potential_board.is_check(on_color=opposite_color(current_player.color)) and
-                potential_board.is_stalemate(on_color=opposite_color(current_player.color), check=True)):
+    def check_if_checkmate(self, current_player):
+        if (self.is_check(on_color=opposite_color(current_player.color)) and
+                self.is_stalemate(on_color=opposite_color(current_player.color), check=True)):
             raise Exception('Check-mate')
 
-        if potential_board.is_stalemate(on_color=opposite_color(current_player.color)):
-            raise Exception('Draw')
-
+    def check_if_stalemate(self, current_player):
+        if self.is_stalemate(on_color=opposite_color(current_player.color)):
+            raise Exception('Stalemate! No legal move')
+        if self.record_of_gameboard['three_rep']:
+            raise Exception("Stalemate! 3-fold repetition")
+        if self.fifty_move_count >= 3:
+            raise Exception('Stalemate! 50-move rule')
 
 class Player():
 
     def __init__(self, websocket, username, color):
-        self.username = username
-        self.websocket = websocket
-        self.color = color
+        self.username=username
+        self.websocket=websocket
+        self.color=color
 
 
 class Game():
 
-    instances = []
+    instances=[]
 
     def __init__(self, id):
-        print('here_1')
-        self.board = Board()
-        self.player_1 = None
-        self.player_2 = None
-        self.winner = None
-        self.id = id
+        self.board=Board()
+        self.player_1=None
+        self.player_2=None
+        self.winner=None
+        self.id=id
         Game.instances.append(self)
 
     @ classmethod
@@ -355,25 +381,29 @@ class Game():
         return [inst for inst in cls.instances if inst.id == id]
 
     def place_players(self, player_1, player_2):
-        self.player_1 = Player(player_1['websocket'], player_1['username'], Color.WHITE)
-        self.player_2 = Player(player_2['websocket'], player_2['username'], Color.BLACK)
+        self.player_1=Player(
+            player_1['websocket'], player_1['username'], Color.WHITE)
+        self.player_2=Player(
+            player_2['websocket'], player_2['username'], Color.BLACK)
 
     def handle_move(self, start_field, end_field, websocket):
         if self.player_1.websocket == websocket:
-            current_player = self.player_1
+            current_player=self.player_1
         elif self.player_2.websocket == websocket:
-            current_player = self.player_2
+            current_player=self.player_2
         else:
             raise Exception('You are not a participant of game')
 
-        self.board.check_move_is_legal(start_field, end_field, current_player)
+        self.board.check_if_legal_move(start_field, end_field, current_player)
         self.board.make_move(start_field, end_field)
+        self.board.check_if_checkmate(current_player)
+        self.board.check_if_stalemate(current_player)
 
     def get_chessboard(self, websocket):
-        board_string = ''
-        direct = 1
+        board_string=''
+        direct=1
         if self.player_1.websocket == websocket:
-            direct = -1
+            direct=-1
         for line in self.board.gameboard[::direct]:
             board_string += str(line)
             board_string += '\n'
@@ -381,23 +411,53 @@ class Game():
 
     def end_with_win(self, winner_websocket):
         if self.player_1.websocket == winner_websocket:
-            self.winner = self.player_1
+            self.winner=self.player_1
         else:
-            self.winner = self.player_2
-        result = send_result(self.winner.username, self.id)
-        print(result)
+            self.winner=self.player_2
+        return send_result(self.winner.username, self.id)
+
+    def end_with_draw(self):
+        return send_result('', self.id)
 
 
 
 if __name__ == "__main__":
 
-    game = Game('e')
-    game.place_players('player_1', 'player_2')
-    player_1 = game.player_1
-    player_2 = game.player_2
+    game=Game('e')
+    game.place_players({'username': 'player_1', 'websocket': '20'}, {
+                       'username': 'player_2', 'websocket': '22'})
+    player_1=game.player_1
+    player_2=game.player_2
 
     # print(game.board['c3'])
     # game.board.print_board()
+
+###################################################
+# 3-fold
+
+    # game.handle_move('b1', 'a3', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
+
+    # game.handle_move('b8', 'a6', player_2.websocket)
+    # print(game.get_chessboard(player_2.websocket))
+
+    # game.handle_move('a3', 'b1', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
+
+    # game.handle_move('a6', 'b8', player_2.websocket)
+    # print(game.get_chessboard(player_2.websocket))
+
+    # game.handle_move('b1', 'a3', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
+
+    # game.handle_move('b8', 'a6', player_2.websocket)
+    # print(game.get_chessboard(player_2.websocket))
+
+    # game.handle_move('a3', 'b1', player_1.websocket)
+    # print(game.get_chessboard(player_1.websocket))
+
+    # game.handle_move('a6', 'b8', player_2.websocket)
+    # print(game.get_chessboard(player_2.websocket))
 
 
 ####################################################
@@ -422,6 +482,7 @@ if __name__ == "__main__":
     # print(game.get_chessboard(player_2.websocket))
 
 
+    # print(game.board.record_of_gameboard)
     # game.handle_move('d1', 'd2', player_1.websocket)
     # print(game.get_chessboard(player_1.websocket))
 
@@ -500,29 +561,21 @@ if __name__ == "__main__":
 
 
 ####################################################
-# # Mat w dwóch
+# check-mate 2 moves
 
-    # print('\n')
-    # game.handle_move((5, 6), (5, 4), player_1)
-    # game.board.print_board()
+    game.handle_move('f2', 'f4', player_1.websocket)
+    print(game.get_chessboard(player_1.websocket))
 
-    # print(game.board.king[Color.WHITE].available_moves(game.board))
-    # print(game.board.king[Color.BLACK].available_moves(game.board))
+    game.handle_move('e7', 'e6', player_2.websocket)
+    print(game.get_chessboard(player_2.websocket))
 
-    # print('\n')
-    # game.handle_move((4, 1), (4, 2), player_2)
-    # game.board.print_board()
+    game.handle_move('g2', 'g4', player_1.websocket)
+    print(game.get_chessboard(player_1.websocket))
 
-    # print('\n')
-    # game.handle_move((6, 6), (6, 4), player_1)
-    # game.board.print_board()
+    game.handle_move('d8', 'h4', player_2.websocket)
+    print(game.get_chessboard(player_2.websocket))
 
-    # print('\n')
-
-    # game.handle_move((3, 0), (7, 4), player_2)
-    # game.board.print_board()
-
-    # print(game.board.king[Color.WHITE].available_moves(game.board))
+    print(game.board.king[Color.WHITE].available_moves(game.board))
 
 
 ####################################################

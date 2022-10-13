@@ -65,13 +65,17 @@ class EndGame(graphene.Mutation):
 
     @staticmethod
     def mutate(root, info, challange_id, winner_username):
-        winner = get_user_model().objects.get(username=winner_username).player
+
         challange = Challange.objects.get(id=challange_id)
-        if challange.from_player == winner:
-            loser = challange.to_player
+        if winner_username:
+            winner = get_user_model().objects.get(username=winner_username).player
+            if challange.from_player == winner:
+                loser = challange.to_player
+            else:
+                loser = challange.from_player
+            game = Game(winner=winner, loser=loser)
         else:
-            loser = challange.from_player
-        game = Game(winner=winner, loser=loser)
+            game = Game(is_draw=True)
         game.save()
         challange.game = game
         challange.status = StatusChoice.DONE

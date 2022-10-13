@@ -35,8 +35,17 @@ async def main(websocket, game, username):
             game.handle_move(start_field, end_field, websocket)
         except Exception as error:
             if str(error) == 'Check-mate':
-                game.end_with_win(websocket)
-                await websocket.send('Check-mate')
+                game_result = game.end_with_win(websocket)
+                await websocket.send(str(error))
+                await websocket.send(game.get_chessboard(websocket))
+                for conn in connected[game.id]:
+                    if conn['websocket'] != websocket:
+                        await conn['websocket'].send('end_game')
+                        await conn['websocket'].send(game.get_chessboard(websocket))
+                break
+            elif str(error).startswith("Stalemate"):
+                game_result = game.end_with_draw()
+                await websocket.send(str(error))
                 await websocket.send(game.get_chessboard(websocket))
                 for conn in connected[game.id]:
                     if conn['websocket'] != websocket:
@@ -59,14 +68,15 @@ async def main(websocket, game, username):
         if game.winner:
             await connection['websocket'].send(f'Game over! Winner:{game.winner.username}')
         else:
-            await connection['websocket'].send('Game over! There is a stalemate')
+            await connection['websocket'].send(f'Game over! There is a stalemate') #working
 
 
-
-
+# 3-fold
+# b1:a3 ;  b8:a6
+# a3:b1 ;  a6:b8
 # szewczyk e2:e3 , d1:f3, f1:c4, f3:f7
-# a7:a6...
 
+# mat w dwóch
 # f2:f4, g2:g4
 # e7:e6, d8:h4
 

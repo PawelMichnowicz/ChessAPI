@@ -19,8 +19,8 @@ class Player(models.Model):
 
 class Game(models.Model):
     is_draw = models.BooleanField(default=False)
-    winner = models.ForeignKey(Player, related_name='winner', on_delete=models.SET(get_sentinel_user))
-    loser = models.ForeignKey(Player, related_name='loser', on_delete=models.SET(get_sentinel_user))
+    winner = models.ForeignKey(Player, null=True, related_name='winner', on_delete=models.SET(get_sentinel_user))
+    loser = models.ForeignKey(Player, null=True, related_name='loser', on_delete=models.SET(get_sentinel_user))
 
 
 class Challange(models.Model):

@@ -49,6 +49,12 @@ async def listen():
                         print(msg)
                         end_game = True
                         break
+                    elif msg.startswith('Stalemate'):
+                        board = await ws.recv()
+                        print(board)
+                        print(msg)
+                        end_game = True
+                        break
                     else: # incorrect move
                         print(msg)
                 if end_game:
@@ -57,6 +63,8 @@ async def listen():
                 print('Waiting for opp......') #
                 msg = await ws.recv()
                 if msg == 'end_game':
+                    board = await ws.recv()
+                    print(board)
                     break
                 print(msg) # print opponent's move and chessboard
                 my_turn = True
