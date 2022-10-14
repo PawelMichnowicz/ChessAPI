@@ -129,7 +129,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 AUTH_USER_MODEL = 'users.User'
 
 GRAPHENE = {
-    "SCHEMA": "mysite.myschema.schema",
+    "SCHEMA": "games.schema.schema",
     "MIDDLEWARE": [
         "graphql_jwt.middleware.JSONWebTokenMiddleware",
     ],
@@ -141,5 +141,6 @@ AUTHENTICATION_BACKENDS = [
     "sesame.backends.ModelBackend",
 ]
 
+ALLOWED_HOSTS = ['app', 'localhost']
 
-SESAME_MAX_AGE = 300
+

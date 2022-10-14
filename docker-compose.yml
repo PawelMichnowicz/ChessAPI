@@ -6,7 +6,7 @@ services:
     build: ./game_server
     ports:
       - "5050:5050"
-    command: bash -c "python3 game/server.py"
+    command: bash -c "python -u game/server.py"
     volumes:
       - ./game_server:/game
     depends_on:
