@@ -1,77 +1,59 @@
 import websockets
 import asyncio
 
-
-def str_to_bool(value):
-    if value == 'True':
-        return True
-    elif value == 'False':
-        return False
-    else:
-        raise Exception(value)
+from utils import str_to_bool
 
 
 async def listen():
-
-    url = "ws://localhost:5050"
+    url = "ws://localhost:5050" 
 
     async with websockets.connect(url, ping_interval=None) as ws:
-        print('Connected')
+        print("Connected")
 
         while True:
             await ws.send(input("Provide id of your game: "))
             msg = await ws.recv()
             print(msg)
-            if msg != 'id_ok':
+            if msg != "id_ok":
                 continue
 
             await ws.send(input("Provide your username: "))
             msg = await ws.recv()
             print(msg)
-            if msg != 'username_ok':
+            if msg != "username_ok":
                 continue
             break
 
-        end_game = False
         my_turn = str_to_bool(await ws.recv())
-        while True:
+        game_is_on = True
+        while game_is_on:
             if my_turn:
-                while my_turn:
+                while True:
                     await ws.send(input("Your Turn: "))
                     msg = await ws.recv()
-                    if msg == 'ok':
-                        board = await ws.recv()
-                        print(board)
-                        my_turn = False
-                    elif msg == 'Check-mate':
-                        board = await ws.recv()
-                        print(board)
+                    if msg.startswith("Try again"):  # illegal move
                         print(msg)
-                        end_game = True
-                        break
-                    elif msg.startswith('Stalemate'):
-                        board = await ws.recv()
-                        print(board)
-                        print(msg)
-                        end_game = True
-                        break
-                    else: # incorrect move
-                        print(msg)
-                if end_game:
-                    break
-            else:
-                print('Waiting for opp......') #
-                msg = await ws.recv()
-                if msg == 'end_game':
+                        continue
+
                     board = await ws.recv()
                     print(board)
+                    if msg:  # end of the game
+                        game_is_on = False
+                        break
+                    else:  # correct move
+                        my_turn = False
+                        break
+            else:
+                print("Waiting for opponent......")  #
+                msg = await ws.recv()
+                board = await ws.recv()
+                print(board)
+                if msg:  # end of the game
                     break
-                print(msg) # print opponent's move and chessboard
-                my_turn = True
+                else:  # correct move
+                    my_turn = True
 
-        print(await ws.recv()) # print result of game
+        print(msg)
 
 
 asyncio.run(listen())
-
-
