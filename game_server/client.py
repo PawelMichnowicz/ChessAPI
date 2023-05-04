@@ -5,7 +5,7 @@ from utils import str_to_bool
 
 
 async def listen():
-    url = "ws://localhost:5050" 
+    url = "ws://localhost:5050"
 
     async with websockets.connect(url, ping_interval=None) as ws:
         print("Connected")
@@ -31,7 +31,9 @@ async def listen():
                 while True:
                     await ws.send(input("Your Turn: "))
                     msg = await ws.recv()
-                    if msg.startswith("Try again"):  # illegal move
+
+                    # if player made illegal move, repeat attempt
+                    if msg.startswith("Try again"):
                         print(msg)
                         continue
 

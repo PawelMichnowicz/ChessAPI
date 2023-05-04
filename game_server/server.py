@@ -26,18 +26,26 @@ async def main(websocket, game, username):
         print("Waiting for second player")
         await asyncio.sleep(0.5)
 
+    # Assign websockets to players and choose which one starts first move
     player_1, player_2 = connected_users[game.id][0], connected_users[game.id][1]
     game.place_players(player_1, player_2)
-
     await websocket.send(str(websocket == player_1["websocket"]))
 
     async for message in websocket:
-        try:
-            start_field, end_field = (message).split(":")
-            game.handle_move(start_field, end_field, websocket)
-        except Exception as error:
-            await websocket.send("Try again \n" + str(error))
-            continue
+        if message == "give up":
+            if str(websocket == player_1["websocket"]):
+                winner = game.player_1
+            else:
+                winner = game.player_2
+            game.end_with_win(winner, f"{winner.username} won! Opponent gave up... ")
+
+        else:
+            try:
+                start_field, end_field = (message).split(":")
+                game.handle_move(start_field, end_field, websocket)
+            except Exception as error:
+                await websocket.send("Try again \n" + str(error))
+                continue
 
         await send_response_to_player(websocket, game)
         await send_response_to_opponent(connected_users, websocket, game)
@@ -72,7 +80,7 @@ async def create_game(websocket):
     if not game:
         game = Game(game_id)
     else:
-        game = game[0]  # popraw sprawdź czy można bez
+        game = game[0]
     return game, username
 
 
