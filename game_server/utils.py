@@ -1,7 +1,11 @@
 
+
 async def send_response_to_player(websocket, game):
     await websocket.send(game.result_description)
     await websocket.send(game.get_chessboard(websocket))
+
+
+
 
 
 async def send_response_to_opponent(connected_users, websocket, game):
