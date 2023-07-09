@@ -71,7 +71,7 @@ class ChessServer:
     async def main(self, websocket, game):
         async for message in websocket:
             if message == config.COMMAND_DRAW_OFFER:
-                # to both send offer
+                # send offer to both players
                 for user in self.connected_users[game.id]:
                     if user["websocket"] != websocket:
                         await user["websocket"].send(config.MESSAGE_DRAW_OFFER)

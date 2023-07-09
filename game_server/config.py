@@ -1,12 +1,15 @@
+# network connection parameters
 PORT = 5050
 QUERY_GET_CHALLANGE = 'query {{challange (gameId: "{}"){{id fromUser {{username}} toUser {{username}} }} }}'
 URL = "http://app:8000/graphql"
 
+# commands available to use by user
 COMMAND_DRAW_OFFER = "draw"
 COMMAND_DRAW_DECLINED = "N"
 COMMAND_DRAW_ACCEPTED = "Y"
 COMMAND_GIVE_UP = "give up"
 
+# messages used to communicate betwwen client and server
 MESSAGE_CORRECT_ID = "id_ok"
 MESSAGE_CORRECT_USERNAME = "username_ok"
 MESSAGE_DRAW_OFFER = "draw offer"
