@@ -1,6 +1,6 @@
 # network connection parameters
 PORT = 5050
-QUERY_GET_CHALLANGE = 'query {{challange (gameId: "{}"){{id fromUser {{username}} toUser {{username}} }} }}'
+QUERY_GET_CHALLANGE = 'query {{challange (gameId: "{}"){{id fromUser {{username eloRating}} toUser {{username eloRating}} eloRatingChanges }} }}'
 URL = "http://app:8000/graphql"
 
 # commands available to use by user

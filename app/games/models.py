@@ -1,7 +1,12 @@
-from enum import Enum
-from django.db import models
-from django.contrib.auth import get_user_model
+import math
 import uuid
+
+from django.contrib.auth import get_user_model
+from django.db import models
+
+
+ELO_START_VALUE = 400
+ELO_FACTOR_K = 20
 
 
 def get_sentinel_user():
@@ -32,4 +37,12 @@ class Challange(models.Model):
     ), related_name='challanges', on_delete=models.SET(get_sentinel_user))
     game = models.OneToOneField(Game, null=True, blank=True,
                                 default=None, related_name='game', on_delete=models.SET_NULL)
+
+
+    def calculate_elo_rating(self, player, opponent, result):
+        probability = 1 / (
+            1 + math.pow(10, (opponent.elo_rating - player.elo_rating) / ELO_START_VALUE)
+        )
+        return round(player.elo_rating + ELO_FACTOR_K * (result - probability), 1)
+
 

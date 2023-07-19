@@ -417,13 +417,14 @@ class Game:
             self.end_with_draw(result_description)
 
     def end_with_win(self, current_player, result_description):
-        print(current_player, type(current_player))
+        print(result_description )
         self.winner = current_player
         self.result_description = result_description
         self.is_over = True
         return send_result(self.winner.username, self.id)
 
     def end_with_draw(self, result_description):
+        print(result_description)
         self.result_description = result_description
         self.is_over = True
         return send_result("", self.id)

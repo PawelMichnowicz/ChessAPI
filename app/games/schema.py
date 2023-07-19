@@ -1,41 +1,52 @@
 import graphene
 from graphene_django import DjangoObjectType
+from graphene.types.json import JSONString
 from django.contrib.auth import get_user_model
 
 from games.models import Challange, Game, StatusChoice
 
 
 class UserType(DjangoObjectType):
+    elo_rating_changes = graphene.Field(graphene.Float)
+
     class Meta:
         model = get_user_model()
-        fields = ["username", 'id']
+        fields = ["username", "elo_rating", "id"]
 
 
 class ChallangeType(DjangoObjectType):
+    user = graphene.Field(UserType)
+    elo_rating_changes = graphene.Field(JSONString)
+
     class Meta:
         model = Challange
         fields = "__all__"
 
-    user = graphene.Field(UserType)
+    def resolve_elo_rating_changes(self, info):
+        elo_rating_dict = {
+            self.from_user.username: {
+                "win": self.calculate_elo_rating(self.from_user, self.to_user, 1),
+                "draw": self.calculate_elo_rating(self.from_user, self.to_user, 0.5),
+                "lose": self.calculate_elo_rating(self.from_user, self.to_user, 0),
+            },
+            self.to_user.username: {
+                "win": self.calculate_elo_rating(self.to_user, self.from_user, 1),
+                "draw": self.calculate_elo_rating(self.to_user, self.from_user, 0.5),
+                "lose": self.calculate_elo_rating(self.to_user, self.from_user, 0),
+            },
+        }
+        return elo_rating_dict
 
 
 class Query(graphene.ObjectType):
-    challange = graphene.Field(
-        ChallangeType,
-        game_id=graphene.String()
-    )
+    challange = graphene.Field(ChallangeType, game_id=graphene.String())
 
     def resolve_challange(root, info, game_id):
         return Challange.objects.filter(id=game_id).first()
 
 
-# class ChallangeInput(graphene.InputObjectType):
-#     player_id = graphene.ID()
-
-
 class CreateChallange(graphene.Mutation):
     class Arguments:
-        # challange_data = ChallangeInput(required=True) #nested
         user_id = graphene.ID()
 
     challange = graphene.Field(ChallangeType)
@@ -44,8 +55,7 @@ class CreateChallange(graphene.Mutation):
     def mutate(root, info, user_id=None):
         from_user = info.context.user
         to_user = get_user_model().objects.get(id=user_id)
-        challange_instance = Challange(
-            from_user=from_user, to_user=to_user)
+        challange_instance = Challange(from_user=from_user, to_user=to_user)
         challange_instance.save()
         return CreateChallange(challange=challange_instance)
 
@@ -73,14 +83,18 @@ class EndGame(graphene.Mutation):
             else:
                 loser = challange.from_user
             game = Game(winner=winner, loser=loser)
-            winner.elo_rating = winner.updated_elo(loser, 1)
-            loser.elo_rating = loser.updated_elo(winner, 0)
+            winner.elo_rating = challange.calculate_elo_rating(winner, loser, 1)
+            loser.elo_rating = challange.calculate_elo_rating(loser, winner, 0)
             winner.save()
             loser.save()
-        else: # If they played a draw
+        else:  # If they played a draw
             game = Game(is_draw=True)
-            challange.from_user.elo_rating = challange.from_user.updated_elo(challange.to_user, 0.5)
-            challange.to_user.elo_rating = challange.to_user.updated_elo(challange.from_user, 0.5)
+            challange.from_user.elo_rating = challange.calculate_elo_rating(
+                challange.from_user, challange.to_user, 0.5
+            )
+            challange.to_user.elo_rating = challange.calculate_elo_rating(
+                challange.to_user, challange.from_user, 0.5
+            )
             challange.from_user.save()
             challange.to_user.save()
 

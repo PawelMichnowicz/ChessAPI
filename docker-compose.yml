@@ -14,8 +14,11 @@ services:
 
   app:
     build: ./app
+    environment:
+      - PYTHONUNBUFFERED=1
     ports:
       - "8000:8000"
     volumes:
       - ./app:/code
     command: bash -c "python manage.py runserver 0.0.0.0:8000"
+
