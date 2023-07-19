@@ -368,7 +368,7 @@ class Board:
             return "Stalemate! No legal move"
         elif self.record_of_gameboard["three_rep"]:
             return "Stalemate! 3-fold repetition"
-        elif self.fifty_move_count >= 3:
+        elif self.fifty_move_count >= 50:
             return "Stalemate! 50-move rule"
 
 
