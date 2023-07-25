@@ -16,12 +16,10 @@ class ChessServer:
     def __init__(self) -> None:
         self.connected_users = {}
 
-    @staticmethod
-    def get_current_player(websocket, game):
-        if str(websocket == game.player_1.websocket):
-            return game.player_1
-        else:
-            return game.player_2
+    async def send_to_opponent(self, websocket, game, message):
+        for user in self.connected_users[game.id]:
+            if user["websocket"] != websocket:
+                await user["websocket"].send(message)
 
     async def log_in_to_game(self, websocket):
         while True:
@@ -31,8 +29,6 @@ class ChessServer:
                 response = requests.post(url=config.URL, json={"query": query})
 
                 json_data = json.loads(response.text)
-                print(json_data["data"]["challange"]["fromUser"]["eloRating"])
-                print(type(json_data["data"]["challange"]["toUser"]["eloRating"]))
 
                 if not json_data["data"]["challange"]:
                     raise Exception("Game with this id doesn't exists")
@@ -93,9 +89,6 @@ class ChessServer:
         )
         game.place_players(player_1, player_2)
 
-        # Send initial board to clients
-        await websocket.send(game.get_chessboard(websocket))
-
         # Collect full info about players and send to client
         user_info = user.copy()
         del user_info["websocket"]
@@ -108,42 +101,41 @@ class ChessServer:
             user_info["opponent_elo_rating"] = player_1["elo_rating"]
         await websocket.send(json.dumps(user_info))
 
+        # Send initial board to clients
+        await websocket.send(game.get_chessboard(websocket))
+
         return game
 
     async def main(self, websocket, game):
         async for message in websocket:
             if message == config.COMMAND_DRAW_OFFER:
-                # send offer to both players
-                for user in self.connected_users[game.id]:
-                    if user["websocket"] != websocket:
-                        await user["websocket"].send(config.MESSAGE_DRAW_OFFER)
+                await self.send_to_opponent(websocket, game, config.MESSAGE_DRAW_OFFER)
                 await websocket.send(config.MESSAGE_DRAW_OFFER)
                 continue
 
             elif message == config.COMMAND_DRAW_DECLINED:
-                for user in self.connected_users[game.id]:
-                    if user["websocket"] != websocket:
-                        await user["websocket"].send(config.MESSAGE_DRAW_DECLINED)
+                await self.send_to_opponent(
+                    websocket, game, config.MESSAGE_DRAW_DECLINED
+                )
                 continue
 
             elif message == config.COMMAND_DRAW_ACCEPTED:
                 game.end_with_draw("Draw by mutal consent")
-                for user in self.connected_users[game.id]:
-                    if user["websocket"] != websocket:
-                        await user["websocket"].send(config.MESSAGE_DRAW_ACCEPTED)
+                await self.send_to_opponent(
+                    websocket, game, config.MESSAGE_DRAW_ACCEPTED
+                )
                 await websocket.send(config.MESSAGE_DRAW_ACCEPTED)
 
             elif message == config.COMMAND_GIVE_UP:
-                if str(websocket == game.player_1.websocket):
-                    winner = game.player_1
-                else:
-                    winner = game.player_2
+                winner = (
+                    game.player_1
+                    if websocket == game.player_1.websocket
+                    else game.player_2
+                )
                 game.end_with_win(
                     winner, f"{winner.username} won! Opponent gave up... "
                 )
-                for user in self.connected_users[game.id]:
-                    if user["websocket"] != websocket:
-                        await user["websocket"].send(config.MESSAGE_END_GAME)
+                await self.send_to_opponent(websocket, game, config.MESSAGE_END_GAME)
                 await websocket.send(config.MESSAGE_END_GAME)
 
             else:
@@ -151,15 +143,15 @@ class ChessServer:
                     start_field, end_field = (message).split(":")
                     game.handle_move(start_field, end_field, websocket)
                     if not game.is_over:
-                        for user in self.connected_users[game.id]:
-                            if user["websocket"] != websocket:
-                                await user["websocket"].send(
-                                    config.MESSAGE_CORRECT_MOVE
-                                )
-                                await user["websocket"].send(message)
-
+                        await self.send_to_opponent(
+                            websocket, game, config.MESSAGE_CORRECT_MOVE
+                        )
+                        await self.send_to_opponent(websocket, game, message)
                         await websocket.send(config.MESSAGE_CORRECT_MOVE)
                         await websocket.send(message)
+                    else:
+                        await self.send_to_opponent(websocket, game, config.MESSAGE_END_GAME)
+                        await websocket.send(config.MESSAGE_END_GAME)
 
                 except Exception as error:
                     await websocket.send(
@@ -167,33 +159,23 @@ class ChessServer:
                     )
                     continue
 
-            if game.is_over:
-                print("game over")
-                for user in self.connected_users[game.id]:
-                    if user["websocket"] != websocket:
-                        await user["websocket"].send(config.MESSAGE_END_GAME)
-                await websocket.send(config.MESSAGE_END_GAME)
-                break
-
             # sending board
-            for user in self.connected_users[game.id]:
-                if user["websocket"] != websocket:
-                    await user["websocket"].send(game.get_chessboard(user["websocket"]))
+            await self.send_to_opponent(websocket, game, game.get_chessboard(websocket))
             await websocket.send(game.get_chessboard(websocket))
 
 
-async def handler(websocket):
-    game_id, username = await server.log_in_to_game(websocket)
-    game = await server.create_game(websocket, game_id, username)
-    await server.main(websocket, game)
+    async def handler(self, websocket):
+        game_id, username = await self.log_in_to_game(websocket)
+        game = await self.create_game(websocket, game_id, username)
+        await self.main(websocket, game)
 
 
-async def start_server():
-    print("Server started")
-    async with websockets.serve(handler, "0.0.0.0", config.PORT, ping_interval=None):
-        await asyncio.Future()
+    async def start_server(self):
+        print("Server started")
+        async with websockets.serve(self.handler, "0.0.0.0", config.PORT, ping_interval=None):
+            await asyncio.Future()
 
 
 if __name__ == "__main__":
     server = ChessServer()
-    asyncio.run(start_server())
+    asyncio.run(server.start_server())

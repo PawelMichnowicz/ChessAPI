@@ -1,150 +1,160 @@
-import asyncio
-import json
 import os
 import platform
+import asyncio
+import json
 import websockets
 
 import config
 
 
-async def clear_terminal():
-    system = platform.system()
-    if system == "Windows":
-        os.system("cls")
-    elif system == "Darwin" or system == "Linux":
-        os.system("clear")
+class ChessClient:
+    def __init__(self):
+        self.url = "ws://localhost:5050"
+        self.ws = None
+        self.my_turn = False
+        self.game_is_on = False
+        self.user_data = {}
+        self.game_info = ""
+        self.last_move = ""
 
+    async def connect(self):
+        self.ws = await websockets.connect(self.url, ping_interval=None)
 
-async def listen():
-    url = "ws://localhost:5050"
+    @staticmethod
+    def clear_terminal():
+        system = platform.system()
+        if system == "Windows":
+            os.system("cls")
+        elif system == "Darwin" or system == "Linux":
+            os.system("clear")
 
-    async with websockets.connect(url, ping_interval=None) as ws:
-        print("Connected to the server!")
-
+    async def authenticate_user(self):
         while True:
-            await ws.send(input("Provide id of your game: "))
-            msg = await ws.recv()
+            await self.ws.send(input("Provide id of your game: "))
+            msg = await self.ws.recv()
             print(msg)
             if msg != config.MESSAGE_CORRECT_ID:
                 continue
 
-            await ws.send(input("Provide your username: "))
-            msg = await ws.recv()
+            await self.ws.send(input("Provide your username: "))
+            msg = await self.ws.recv()
             print(msg)
             if msg != config.MESSAGE_CORRECT_USERNAME:
                 continue
             break
 
-        # Declare displayed data about game
-        initial_board = await ws.recv()
-        user_data = json.loads(await ws.recv())
+    async def gather_game_info(self):
+        self.user_data = json.loads(await self.ws.recv())
         elo_update_on_win = round(
-            user_data["elo_rating_changes"]["win"] - user_data["elo_rating"], 2
+            self.user_data["elo_rating_changes"]["win"] - self.user_data["elo_rating"],
+            2,
         )
         elo_update_on_draw = round(
-            user_data["elo_rating_changes"]["draw"] - user_data["elo_rating"], 2
+            self.user_data["elo_rating_changes"]["draw"] - self.user_data["elo_rating"],
+            2,
         )
         elo_update_on_lose = round(
-            user_data["elo_rating_changes"]["lose"] - user_data["elo_rating"], 2
+            self.user_data["elo_rating_changes"]["lose"] - self.user_data["elo_rating"],
+            2,
         )
-        game_info = (
-            f"{user_data['username']}[{user_data['elo_rating']}] Vs. {user_data['opponent_username']}[{user_data['opponent_elo_rating']}] \n"
+        self.game_info = (
+            f"{self.user_data['username']}[{self.user_data['elo_rating']}] Vs. {self.user_data['opponent_username']}[{self.user_data['opponent_elo_rating']}] \n"
             f"win:{elo_update_on_win:+}pkt   draw:{elo_update_on_draw:+}pkt   lose:{elo_update_on_lose:+}pkt \n"
             f"[{config.COMMAND_DRAW_OFFER}]-offer a draw   [{config.COMMAND_GIVE_UP}]-give up the game"
         )
 
-        game_is_on = True
-        await clear_terminal()
-        print("The game started")
-        print(game_info)
+    async def display_game_state(self, board):
+        self.clear_terminal()
+        print(self.game_info)
         print("")
-        print(initial_board)
+        print(board)
+        if self.last_move and self.my_turn:
+            print(f"your last move:{self.last_move}")
+        elif self.last_move and not self.my_turn:
+            print(f"Opponent's last move: {self.last_move}")
 
-        my_turn = user_data["is_white"]
-        while game_is_on:
-            if my_turn:
-                while True:
-                    await ws.send(input("Your Turn: "))
-                    msg = await ws.recv()
+    async def listen(self):
+        await self.connect()
+        print("Connected to the server!")
 
-                    if msg == config.MESSAGE_DRAW_OFFER:
-                        decision = await ws.recv()
-                        if decision == config.MESSAGE_DRAW_DECLINED:
-                            continue
-                        elif decision == config.MESSAGE_DRAW_ACCEPTED:
-                            break
+        await self.authenticate_user()
+        await self.gather_game_info()
 
-                    elif msg == config.MESSAGE_CORRECT_MOVE:
-                        last_move = await ws.recv()
-                        break
+        initial_board = await self.ws.recv()
+        await self.display_game_state(initial_board)
 
-                    elif msg == config.MESSAGE_END_GAME:
-                        break
+        self.game_is_on = True
+        self.my_turn = self.user_data["is_white"]
+        while self.game_is_on:
+            if self.my_turn:
+                await self.make_move()
+            else:
+                await self.wait_for_opponent()
 
-                    elif msg.startswith(config.MESSAGE_INCORRECT_MOVE):
-                        print(msg)
-                        continue
+            board = await self.ws.recv()
+            await self.display_game_state(board)
+            self.my_turn = not self.my_turn
 
-                    else:
-                        print(msg)
-                        raise Exception("Unknown messsage")
+    async def make_move(self):
+        while True:
+            await self.ws.send(input("Your Turn: "))
+            msg = await self.ws.recv()
 
-                if (
-                    msg == config.MESSAGE_DRAW_OFFER
-                    and decision == config.MESSAGE_DRAW_ACCEPTED
-                ) or msg == config.MESSAGE_END_GAME:
-                    game_is_on = False
-                    break
-                else:  # correct move
-                    my_turn = False
+            if msg == config.MESSAGE_DRAW_OFFER:
+                decision = await self.ws.recv()
+                if decision == config.MESSAGE_DRAW_DECLINED:
+                    continue
+                elif decision == config.MESSAGE_DRAW_ACCEPTED:
+                    self.game_is_on = False
+                    return
 
-                await clear_terminal()
-                board = await ws.recv()
-                print(game_info)
-                print("")
-                print(board)
-                if "last_move" in locals():
-                    print(f"your last move:{last_move}")
+            elif msg == config.MESSAGE_CORRECT_MOVE:
+                self.last_move = await self.ws.recv()
+                break
+
+            elif msg == config.MESSAGE_END_GAME:
+                self.game_is_on = False
+                return
+
+            elif msg.startswith(config.MESSAGE_INCORRECT_MOVE):
+                print(msg)
+                continue
 
             else:
-                print("Waiting for opponent......")
-                msg = await ws.recv()
+                print(msg)
+                raise Exception("Unknown message")
 
-                if msg == config.MESSAGE_DRAW_OFFER:
-                    print("Draw offered:")
-                    while True:
-                        draw_response = input(
-                            f"Type {config.COMMAND_DRAW_ACCEPTED}/{config.COMMAND_DRAW_DECLINED}: "
-                        )
-                        if (
-                            draw_response.upper() == config.COMMAND_DRAW_ACCEPTED
-                            or draw_response.upper() == config.COMMAND_DRAW_DECLINED
-                        ):
-                            await ws.send(draw_response)
-                            break
-                        else:
-                            print("Invalid value")
-                    continue
+    async def wait_for_opponent(self):
+        print("Waiting for opponent......")
+        msg = await self.ws.recv()
 
-                elif msg == config.MESSAGE_CORRECT_MOVE:
-                    last_move = await ws.recv()
-
-                # Check if there is an accepted draw or end of the game
-                if (
-                    "draw_response" in locals()
-                    and draw_response == config.COMMAND_DRAW_ACCEPTED
-                ) or msg == config.MESSAGE_END_GAME:
+        if msg == config.MESSAGE_DRAW_OFFER:
+            print("Draw offered:")
+            while True:
+                draw_response = input(
+                    f"Type {config.COMMAND_DRAW_ACCEPTED}/{config.COMMAND_DRAW_DECLINED}: "
+                )
+                if draw_response.upper() == config.COMMAND_DRAW_ACCEPTED:
+                    self.game_is_on = False
+                    await self.ws.send(draw_response)
+                    return
+                elif draw_response.upper() == config.COMMAND_DRAW_DECLINED:
+                    await self.ws.send(draw_response)
                     break
                 else:
-                    my_turn = True
+                    print("Invalid value")
+            return
 
-                board = await ws.recv()
-                await clear_terminal()
-                print(game_info)
-                print("")
-                print(board)
-                if "last_move" in locals():
-                    print(f"Opponent's last move: {last_move}")
+        elif msg == config.MESSAGE_CORRECT_MOVE:
+            self.last_move = await self.ws.recv()
+
+        elif msg == config.MESSAGE_END_GAME:
+            self.game_is_on = False
+            return
+        else:
+            print(msg)
+            raise Exception("Unknown message")
 
 
-asyncio.run(listen())
+if __name__ == "__main__":
+    asyncio.run(ChessClient().listen())

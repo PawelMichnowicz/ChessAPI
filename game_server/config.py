@@ -2,6 +2,7 @@
 PORT = 5050
 QUERY_GET_CHALLANGE = 'query {{challange (gameId: "{}"){{id fromUser {{username eloRating}} toUser {{username eloRating}} eloRatingChanges }} }}'
 URL = "http://app:8000/graphql"
+URL_WEBSOCKET = "ws://localhost:5050"
 
 # commands available to use by user
 COMMAND_DRAW_OFFER = "draw"
