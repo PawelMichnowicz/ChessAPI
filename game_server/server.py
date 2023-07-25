@@ -150,7 +150,9 @@ class ChessServer:
                         await websocket.send(config.MESSAGE_CORRECT_MOVE)
                         await websocket.send(message)
                     else:
-                        await self.send_to_opponent(websocket, game, config.MESSAGE_END_GAME)
+                        await self.send_to_opponent(
+                            websocket, game, config.MESSAGE_END_GAME
+                        )
                         await websocket.send(config.MESSAGE_END_GAME)
 
                 except Exception as error:
@@ -160,19 +162,22 @@ class ChessServer:
                     continue
 
             # sending board
-            await self.send_to_opponent(websocket, game, game.get_chessboard(websocket))
+            for user in self.connected_users[game.id]:
+                if user["websocket"] != websocket:
+                    opponent_chessboard = game.get_chessboard(user["websocket"])
+            await self.send_to_opponent(websocket, game, opponent_chessboard)
             await websocket.send(game.get_chessboard(websocket))
-
 
     async def handler(self, websocket):
         game_id, username = await self.log_in_to_game(websocket)
         game = await self.create_game(websocket, game_id, username)
         await self.main(websocket, game)
 
-
     async def start_server(self):
         print("Server started")
-        async with websockets.serve(self.handler, "0.0.0.0", config.PORT, ping_interval=None):
+        async with websockets.serve(
+            self.handler, "0.0.0.0", config.PORT, ping_interval=None
+        ):
             await asyncio.Future()
 
 
