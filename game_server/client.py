@@ -45,21 +45,21 @@ class ChessClient:
 
     async def gather_game_info(self):
         self.user_data = json.loads(await self.ws.recv())
-        elo_update_on_win = round(
+        self.user_data['elo_update_on_win'] = round(
             self.user_data["elo_rating_changes"]["win"] - self.user_data["elo_rating"],
             2,
         )
-        elo_update_on_draw = round(
+        self.user_data['elo_update_on_draw'] = round(
             self.user_data["elo_rating_changes"]["draw"] - self.user_data["elo_rating"],
             2,
         )
-        elo_update_on_lose = round(
+        self.user_data['elo_update_on_lose'] = round(
             self.user_data["elo_rating_changes"]["lose"] - self.user_data["elo_rating"],
             2,
         )
         self.game_info = (
             f"{self.user_data['username']}[{self.user_data['elo_rating']}] Vs. {self.user_data['opponent_username']}[{self.user_data['opponent_elo_rating']}] \n"
-            f"win:{elo_update_on_win:+}pkt   draw:{elo_update_on_draw:+}pkt   lose:{elo_update_on_lose:+}pkt \n"
+            f"win:{self.user_data['elo_update_on_win']:+}pkt   draw:{self.user_data['elo_update_on_draw']:+}pkt   lose:{self.user_data['elo_update_on_lose']:+}pkt \n"
             f"[{config.COMMAND_DRAW_OFFER}]-offer a draw   [{config.COMMAND_GIVE_UP}]-give up the game"
         )
 
@@ -72,6 +72,25 @@ class ChessClient:
             print(f"your last move:{self.last_move}")
         elif self.last_move and not self.my_turn:
             print(f"Opponent's last move: {self.last_move}")
+
+    async def display_game_result(self):
+        print("The game is ended")
+
+        game_result = json.loads(await self.ws.recv())
+        print(game_result["description"])
+        if self.user_data["username"] == game_result["winner"]:
+            print(f"You gain {self.user_data['elo_update_on_win']} points through a win!")
+            print(f"Now your elo rating is equal {self.user_data['elo_rating_changes']['win']}")
+        elif self.user_data["username"] is None and self.user_data['elo_rating_changes']['win']>0:
+            print(f"You gain {self.user_data['elo_update_on_draw']} points through a draw!")
+            print(f"Now your elo rating is equal {self.user_data['elo_rating_changes']['draw']}")
+        elif self.user_data["username"] is None and self.user_data['elo_rating_changes']['win']<0:
+            print(f"You lose {self.user_data['elo_update_on_draw']} points through a draw!")
+            print(f"Now your elo rating is equal {self.user_data['elo_rating_changes']['draw']}")
+        else:
+            print(f"You lose {self.user_data['elo_update_on_lose']} points through a lose!")
+            print(f"Now your elo rating is equal {self.user_data['elo_rating_changes']['lose']}")
+        return
 
     async def listen(self):
         await self.connect()
@@ -91,9 +110,14 @@ class ChessClient:
             else:
                 await self.wait_for_opponent()
 
+
             board = await self.ws.recv()
+            print(f'test board {board}')
             await self.display_game_state(board)
             self.my_turn = not self.my_turn
+
+        await self.display_game_result()
+        await self.ws.close()
 
     async def make_move(self):
         while True:

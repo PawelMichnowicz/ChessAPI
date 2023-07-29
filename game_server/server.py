@@ -124,7 +124,6 @@ class ChessServer:
                 await self.send_to_opponent(
                     websocket, game, config.MESSAGE_DRAW_ACCEPTED
                 )
-                await websocket.send(config.MESSAGE_DRAW_ACCEPTED)
 
             elif message == config.COMMAND_GIVE_UP:
                 winner = (
@@ -135,8 +134,8 @@ class ChessServer:
                 game.end_with_win(
                     winner, f"{winner.username} won! Opponent gave up... "
                 )
-                await self.send_to_opponent(websocket, game, config.MESSAGE_END_GAME)
-                await websocket.send(config.MESSAGE_END_GAME)
+                await websocket.send(config.MESSAGE_END_GAME)  # 1
+                await self.send_to_opponent(websocket, game, config.MESSAGE_END_GAME)  #
 
             else:
                 try:
@@ -167,6 +166,16 @@ class ChessServer:
                     opponent_chessboard = game.get_chessboard(user["websocket"])
             await self.send_to_opponent(websocket, game, opponent_chessboard)
             await websocket.send(game.get_chessboard(websocket))
+
+            if game.is_over:
+                game_result = {
+                    "description": game.result_description,
+                    "winner": None if not game.winner else game.winner.username,
+                }
+                await websocket.send(json.dumps(game_result))
+                await self.send_to_opponent(websocket, game, json.dumps(game_result))
+
+                return
 
     async def handler(self, websocket):
         game_id, username = await self.log_in_to_game(websocket)
