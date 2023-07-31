@@ -2,17 +2,32 @@ import copy
 from abc import ABC, abstractmethod
 
 from enum import Enum
-from graph import send_result
-
-EMPTY = " "
+from graph import send_result_to_app_server
 
 
 class Color(Enum):
+    """
+    Enumeration representing the color of a chess piece.
+
+    Attributes:
+        WHITE (str): The color white of piece
+        BLACK (str): The color black of piece
+    """
+
     WHITE = "white"
     BLACK = "black"
 
 
 def opposite_color(color):
+    """
+    Function to return the opposite color of the given color.
+
+    Args:
+        color (Color): The color for which the opposite color is to be obtained.
+
+    Returns:
+        Color: The opposite color of the given color.
+    """
     if color == Color.BLACK:
         return Color.WHITE
     elif color == Color.WHITE:
@@ -22,12 +37,31 @@ def opposite_color(color):
 
 
 def to_chess_notation(position):
+    """
+    Function to convert the position to chess notation (e.g., (0, 0) => "a1").
+
+    Args:
+        position (tuple): The tuple representing the position on the board.
+
+    Returns:
+        str: The chess notation for the given position.
+    """
     letter_2 = chr(position[0] + 97)
     number_2 = position[1] + 1
     return f"{letter_2}{number_2}"
 
 
 class Piece(ABC):
+    """
+    Abstract base class for chess pieces.
+
+    Attributes:
+        color (Color): The color of the piece (white or black).
+        position (tuple): The position of the piece on the board (x, y coordinates).
+        position_code (str): The chess notation for the position of the piece.
+        last_move (int): The move number in which the piece was last moved.
+    """
+
     rook_steps = [[0, 1], [0, -1], [1, 0], [-1, 0]]
     bishop_steps = [[1, 1], [1, -1], [-1, -1], [-1, 1]]
     royal_steps = [*rook_steps, *bishop_steps]
@@ -40,22 +74,52 @@ class Piece(ABC):
     pawn_steps = {Color.BLACK: -1, Color.WHITE: 1}
 
     def __init__(self, color, position, position_code=None):
+        """
+        Initializes a new Piece object.
+        """
         self.color = color
         self.position = position
         self.position_code = position_code
         self.last_move = None
 
     def __repr__(self) -> str:
+        """
+        Returns a string representation of the piece, e.g., "K-w" for a white King.
+        """
         return f"{self.__class__.__name__[0]}-{self.color.value[0]}"
 
     def __str__(self) -> str:
+        """
+        Returns a string representation of the piece, e.g., "K-w" for a white King.
+        """
         return f"{self.__class__.__name__[0]}-{self.color.value[0]}"
 
     @abstractmethod
     def available_moves(self):
+        """
+        Abstract method that should be implemented by each concrete chess piece class.
+        It should return a list of all available moves for the current piece written in chess notation.
+        """
         pass
 
     def possible_moves(self, steps, board, repeat_steps=True):
+        """
+        Get a list of all potential moves for the piece based on given steps.
+
+        Args:
+            steps (List[List[int]]): A list of steps representing the possible movements.
+            board (Board): The chessboard instance.
+            repeat_steps (bool, optional): If True, repeat the steps until a blocking piece or the board's edge is reached.
+                                           If False, the piece will move only one step in each direction.
+                                           Defaults to True.
+
+        Returns:
+            List[str]: List of potential moves for the piece.
+
+        Note:
+            It does not consider illegal moves, such as moves that would leave the player's king in check.
+            To get only legal moves for the piece, use the `available_moves` method
+        """
         x, y = self.position
         list_moves = []
         for step in steps:
@@ -80,6 +144,21 @@ class Piece(ABC):
         return list_moves
 
     def possible_moves_if_check(self, possible_moves, board):
+        """
+        Filters and returns a list of possible moves for the piece on the board that do not lead to a position
+        where the current player's king is still under check.
+
+        Args:
+        possible_moves (List[str]): A list of potential moves for the piece.
+        board (Board): The current chessboard state.
+
+        Returns:
+            List[str]: A filtered list containing only moves that protect the king from check.
+
+        Note:
+            This method is used only when the current player is under check. It filters the possible moves
+            to ensure that the king is not left in a check position after the move is made.
+        """
         moves = []
         for move in possible_moves:
             potential_board = board.simulate_move(self.position_code, move)
@@ -87,10 +166,31 @@ class Piece(ABC):
                 moves.append(move)
             return moves
 
+
+class Pawn(Piece):
+    """
+    Represents a Pawn piece in the chess game.
+
+    Note:
+        - Pawns can move forward one square or two squares on their first move.
+        - Pawns can capture diagonally one square ahead.
+        - Pawns can be promoted to another piece if they reach the last rank.
+    """
+
     def pawn_moves(self, steps, board):
+        """
+        Get the possible moves for the Pawn, considering only forward movements.
+
+        Args:
+            steps (dict): A dictionary containing the possible steps for the Pawn based on its color.
+            board (Board): The current state of the chessboard.
+
+        Returns:
+            list: A list of chess notations representing the possible forward moves for the Pawn.
+        """
         x, y = self.position
-        list_moves = []
         new_position = to_chess_notation((x, y + steps[self.color]))
+        list_moves = []
         if board.is_in(new_position) and board.is_blank(new_position):
             list_moves.append(new_position)
             if (
@@ -101,6 +201,16 @@ class Piece(ABC):
         return list_moves
 
     def pawn_captures(self, steps, board):
+        """
+        Get the possible capture moves for the Pawn, considering diagonal captures.
+
+        Args:
+            steps (dict): A dictionary containing the possible steps for the Pawn based on its color.
+            board (Board): The current state of the chessboard.
+
+        Returns:
+            list: A list of chess notations representing the possible diagonal capture moves for the Pawn.
+        """
         x, y = self.position
         list_moves = []
         for new_position in [
@@ -116,9 +226,17 @@ class Piece(ABC):
                 list_moves.append(new_position)
         return list_moves
 
-
-class Pawn(Piece):
     def available_moves(self, board, check=False):
+        """
+        Get the available moves for the Pawn on the chessboard.
+
+        Args:
+            board (Board): The current state of the chessboard.
+            check (bool, optional): If True, considers only legal moves that do not expose the King to check.
+
+        Returns:
+            list: A list of chess notations representing the available moves for the Pawn.
+        """
         possible_moves = [
             *self.pawn_moves(self.pawn_steps, board),
             *self.pawn_captures(self.pawn_steps, board),
@@ -129,13 +247,38 @@ class Pawn(Piece):
 
 
 class Knight(Piece):
+    """
+    Represents a Knight piece in the chess game.
+
+    Note:
+        - Knights move in an L-shape: two squares in one direction and one square in a perpendicular direction.
+        - Knights can jump over other pieces.
+        - Knights cannot be blocked by other pieces.
+    """
+
     def __repr__(self):
+        """
+        Returns a string representation of the piece, e.g., "N-w" for a white Knight.
+        """
         return f"N-{self.color.value[0]}"
 
     def __str__(self):
+        """
+        Returns a string representation of the piece, e.g., "N-w" for a white Knight.
+        """
         return f"N-{self.color.value[0]}"
 
     def available_moves(self, board, check=False):
+        """
+        Get the available moves for the Knight on the chessboard.
+
+        Args:
+            board (Board): The current state of the chessboard.
+            check (bool, optional): If True, considers only legal moves that do not expose the King to check.
+
+        Returns:
+            list: A list of chess notations representing the available moves for the Knight.
+        """
         possible_moves = self.possible_moves(
             self.knight_steps, board, repeat_steps=False
         )
@@ -145,7 +288,24 @@ class Knight(Piece):
 
 
 class Rook(Piece):
+    """
+    Represents a Rook piece in the chess game.
+
+    Note:
+        - Rooks can participate in castling if they have not moved before.
+    """
+
     def available_moves(self, board, check=False):
+        """
+        Get the available moves for the Rook on the chessboard.
+
+        Args:
+            board (Board): The current state of the chessboard.
+            check (bool, optional): If True, considers only legal moves that do not expose the King to check.
+
+        Returns:
+            list: A list of chess notations representing the available moves for the Rook.
+        """
         possible_moves = self.possible_moves(self.rook_steps, board)
         if not check:
             return possible_moves
@@ -153,7 +313,21 @@ class Rook(Piece):
 
 
 class Bishop(Piece):
+    """
+    Represents a Bishop piece in the chess game.
+    """
+
     def available_moves(self, board, check=False):
+        """
+        Get the available moves for the Bishop on the chessboard.
+
+        Args:
+            board (Board): The current state of the chessboard.
+            check (bool, optional): If True, considers only legal moves that do not expose the King to check.
+
+        Returns:
+            list: A list of chess notations representing the available moves for the Bishop.
+        """
         possible_moves = self.possible_moves(self.bishop_steps, board)
         if not check:
             return possible_moves
@@ -161,7 +335,21 @@ class Bishop(Piece):
 
 
 class Queen(Piece):
+    """
+    Represents a Queen piece in the chess game.
+    """
+
     def available_moves(self, board, check=False):
+        """
+        Get the available moves for the Queen on the chessboard.
+
+        Args:
+            board (Board): The current state of the chessboard.
+            check (bool, optional): If True, considers only legal moves that do not expose the King to check.
+
+        Returns:
+            list: A list of chess notations representing the available moves for the Queen.
+        """
         possible_moves = self.possible_moves(self.royal_steps, board)
         if not check:
             return possible_moves
@@ -169,7 +357,25 @@ class Queen(Piece):
 
 
 class King(Piece):
+    """
+    Represents a King piece in the chess game.
+
+    Note:
+        - The King is the most critical piece as the game ends if the King is in checkmate.
+        - The King can also perform castling under certain conditions.
+    """
+
     def available_moves(self, board, check=False):
+        """
+        Get the available moves for the King on the chessboard.
+
+        Args:
+            board (Board): The current state of the chessboard.
+            check (bool, optional): If True, considers only legal moves that do not expose the King to check.
+
+        Returns:
+            list: A list of chess notations representing the available moves for the King.
+        """
         possible_moves = self.possible_moves(
             self.royal_steps, board, repeat_steps=False
         )
@@ -178,7 +384,7 @@ class King(Piece):
             if potential_board.is_check(on_color=self.color):
                 possible_moves.remove(move)
 
-        # check possible castling
+        # check if castling is available and add to list of moves
         if all(
             [
                 not self.last_move,
@@ -203,8 +409,26 @@ class King(Piece):
 
 
 class Board:
+    """
+    Represents a chessboard in the chess game.
+
+    Attributes:
+        gameboard (list): 2D list representing the chessboard with pieces.
+        all_pieces (dict): Dictionary containing sets of all pieces for each color.
+        king (dict): Dictionary containing the king piece for each color.
+        rook_a (dict): Dictionary containing the rook piece for each color on the 'a' file.
+        rook_h (dict): Dictionary containing the rook piece for each color on the 'h' file.
+        record_of_moves (dict): Dictionary containing a record of all moves played in the game.
+        record_of_gameboard (dict): Dictionary containing records of gameboard states for three-fold repetition check.
+        fifty_move_count (int): Counter to keep track of moves without capturing or pawn moves.
+    """
+
     def __init__(self):
-        self.gameboard = [8 * [EMPTY] for _ in range(8)]
+        """
+        Initializes a new Board object.
+        """
+        self.EMPTY = " "
+        self.gameboard = [8 * [self.EMPTY] for _ in range(8)]
         self.all_pieces = {Color.BLACK: set(), Color.WHITE: set()}
         self.generate_pieces_on_board()
         self.king = {Color.WHITE: self["e1"], Color.BLACK: self["e8"]}
@@ -216,11 +440,27 @@ class Board:
         self.fifty_move_count = 0
 
     def __getitem__(self, notation):
+        """
+        Get a chess piece on the board using chess notation.
+
+        Args:
+            notation (str): Chess notation representing the position on the board.
+
+        Returns:
+            Piece or str: The chess piece at the specified position or " " if the position is empty.
+        """
         x_idx = ord(notation[0]) - 97
         y_idx = int(notation[1]) - 1
         return self.gameboard[y_idx][x_idx]
 
     def __setitem__(self, notation, piece):
+        """
+        Set a chess piece on the board using chess notation.
+
+        Args:
+            notation (str): Chess notation representing the position on the board.
+            piece (Piece or str): The chess piece to be placed on the board or " " to empty the position.
+        """
         x_idx = ord(notation[0]) - 97
         y_idx = int(notation[1]) - 1
         if isinstance(piece, Piece):
@@ -229,31 +469,54 @@ class Board:
         self.gameboard[y_idx][x_idx] = piece
 
     def generate_pieces_on_board(self):
+        """
+        Generate and place all pieces on the initial chessboard.
+        """
         placement = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
         for num in range(8):
+            # Create instances of different pieces and place them on their initial positions on the chessboard.
             white_piece = placement[num](Color.WHITE, (num, 7))
             black_piece = placement[num](Color.BLACK, (num, 0))
             white_pawn = Pawn(Color.WHITE, (num, 6))
             black_pawn = Pawn(Color.BLACK, (num, 1))
+
+            # Update the 'all_pieces' dictionary with sets of pieces for each color
             self.all_pieces[Color.WHITE].update({white_piece, white_pawn})
             self.all_pieces[Color.BLACK].update({black_piece, black_pawn})
-            y_idx = chr(num + 97)
+
+            # Put pieces on the board
+            y_idx = chr(num + 97) # converts the column index 'num' to the corresponding lowercase letter (a-h) in ASCII.
             self[f"{y_idx}7"] = black_pawn
             self[f"{y_idx}8"] = black_piece
             self[f"{y_idx}2"] = white_pawn
             self[f"{y_idx}1"] = white_piece
 
-    def print_board(self):
-        for line in self.gameboard[::-1]:
-            print(line)
-
     def is_stalemate(self, on_color, check=False):
+        """
+        Check if the player of the specified color has no legal move.
+
+        Args:
+            on_color (Color): The color of the player to check for stalemate.
+            check (bool, optional): Flag to check the rules of stalemate in a check situation.
+
+        Returns:
+            bool: True if the player of the specified color has no legal move, False otherwise.
+        """
         for piece in self.all_pieces[on_color]:
             if piece.available_moves(self, check):
                 return False
         return True
 
     def is_check(self, on_color):
+        """
+        Check if the player of the specified color is in check.
+
+        Args:
+            on_color (Color): The color of the player to check for check.
+
+        Returns:
+            bool: True if the player of the specified color is in check, False otherwise.
+        """
         king = self.king[on_color]
         attackers = self.all_pieces[opposite_color(on_color)]
         attackers = attackers.difference({self.king[opposite_color(on_color)]})
@@ -264,16 +527,42 @@ class Board:
         return False
 
     def is_blank(self, position):
+        """
+        Check if a given position on the board is empty.
+
+        Args:
+            position (str or tuple): Chess notation or tuple representing the position to check.
+
+        Returns:
+            bool: True if the position is empty, False otherwise.
+        """
         if isinstance(position, str):
-            return self[position] == EMPTY
-        return self.gameboard[position[1]][position[0]] == EMPTY
+            return self[position] == self.EMPTY
+        return self.gameboard[position[1]][position[0]] == self.EMPTY
 
     def is_in(self, position):
+        """
+        Check if a given position is within the board's boundaries.
+
+        Args:
+            position (str or tuple): Chess notation or tuple representing the position to check.
+
+        Returns:
+            bool: True if the position is within the board's boundaries, False otherwise.
+        """
         if isinstance(position, str):
             return position[0] in "abcdefgh" and 0 < int(position[1:]) <= 8
         return -1 < position[1] < 8 and -1 < position[0] < 8
 
     def save_move(self, start_field, end_field, piece):
+        """
+        Save the move to record_of_moves made by a piece.
+
+        Args:
+            start_field (str): Chess notation representing the starting position of the move.
+            end_field (str): Chess notation representing the ending position of the move.
+            piece (Piece): The chess piece making the move.
+        """
         num_move = max(self.record_of_moves.keys())
         piece.last_move = num_move
         if piece.color == Color.WHITE:
@@ -282,6 +571,12 @@ class Board:
             self.record_of_moves[num_move].append(f"{start_field}:{end_field}")
 
     def save_gameboard(self, gameboard):
+        """
+        Save the current state of the gameboard for repetition check.
+
+        Args:
+            gameboard (list): 2D list representing the chessboard with pieces.
+        """
         str_gameboard = [piece.__str__() for row in gameboard for piece in row]
         if str_gameboard in self.record_of_gameboard["two_rep"]:
             self.record_of_gameboard["three_rep"].append(str_gameboard)
@@ -291,57 +586,105 @@ class Board:
             self.record_of_gameboard["one_rep"].append(str_gameboard)
 
     def make_move(self, start_field, end_field, simulate_board=None):
+        """
+        Make a move on the chessboard.
+
+        Args:
+            start_field (str): Chess notation representing the starting position of the move.
+            end_field (str): Chess notation representing the ending position of the move.
+            simulate_board (Board, optional): A simulated board to make the move without modifying the original board.
+
+        Note:
+            - This function updates the game board with the new piece positions.
+            - It checks for pawn promotion and castling moves.
+            - If the 'simulate_board' parameter is used, the move is performed on the simulated board.
+            - The function returns True if the move is valid and False otherwise.
+            - The function also updates the move history and the record of game board positions.
+        """
+        # Determine the board to perform the move on
         if simulate_board:
             board = simulate_board
         else:
             board = self
 
+        # Get the pieces at the starting and ending field
         piece = board[start_field]
         target = board[end_field]
+
+        # Check if the piece is a pawn and reset the fifty-move counter if it moves
         if isinstance(piece, Pawn):
             self.fifty_move_count = 0
+            # Check if the pawn reached the last rank for promotion
             if (end_field[1] == "8" and piece.color == Color.WHITE) or (
                 end_field[1] == "1" and piece.color == Color.BLACK
             ):
                 piece = Queen(piece.color)  # pawn promotion
-        if isinstance(target, Piece):  # if take piece
+
+        # If there is a piece at the ending field, remove it from the board
+        if isinstance(target, Piece):
             target.position = None
             board.all_pieces[target.color].discard(target)
             if not simulate_board:
+                # Reset the fifty-move counter if it is a capturing move
                 self.fifty_move_count = 0
-        elif isinstance(piece, King) and not piece.last_move:  # if castling
+
+        # Check if the move is castling for the King
+        elif isinstance(piece, King) and not piece.last_move:
             row = end_field[1]
             match end_field[0]:
                 case "c":
                     board[f"c{row}"] = board[f"e{row}"]
                     board[f"d{row}"] = board[f"a{row}"]
-                    board[f"a{row}"] = EMPTY
-                    board[f"e{row}"] = EMPTY
+                    board[f"a{row}"] = self.EMPTY
+                    board[f"e{row}"] = self.EMPTY
                 case "g":
                     board[f"g{row}"] = board[f"e{row}"]
                     board[f"f{row}"] = board[f"h{row}"]
-                    board[f"e{row}"] = EMPTY
-                    board[f"h{row}"] = EMPTY
+                    board[f"e{row}"] = self.EMPTY
+                    board[f"h{row}"] = self.EMPTY
                 case _:
                     pass
-        board[end_field] = piece
-        board[start_field] = EMPTY
 
+        # Update the board with the new piece positions
+        board[end_field] = piece
+        board[start_field] = self.EMPTY
+
+        # If not simulating the move, save the move and update the fifty-move counter
         if not simulate_board:
             self.save_move(start_field, end_field, piece)
             self.save_gameboard(self.gameboard)
             self.fifty_move_count += 1
-        return True
 
     def simulate_move(self, start_pos, end_pos):
+        """
+        Simulate a move on the chessboard without modifying the original board.
+
+        Args:
+            start_pos (str): Chess notation representing the starting position of the move.
+            end_pos (str): Chess notation representing the ending position of the move.
+
+        Returns:
+            Board: A new board representing the state after the simulated move.
+        """
         board_copy = copy.deepcopy(self)
         self.make_move(start_pos, end_pos, board_copy)
         return board_copy
 
     def check_if_legal_move(self, start_field, end_field, current_player):
+        """
+        Check if a move is legal for the current player.
+
+        Args:
+            start_field (str): Chess notation representing the starting position of the move.
+            end_field (str): Chess notation representing the ending position of the move.
+            current_player (Player): The current player making the move.
+
+        Raises:
+            Exception: If the move is not legal.
+        """
         piece = self[start_field]
         check = self.is_check(on_color=current_player.color)
-        if piece == EMPTY:
+        if piece == self.EMPTY:
             raise Exception("That is empty field!")
         if piece.color != current_player.color:
             raise Exception("It is not your piece!")
@@ -355,6 +698,15 @@ class Board:
             raise Exception("Illegal move due to attack on your king")
 
     def check_if_checkmate(self, current_player):
+        """
+        Check if the current player is in checkmate.
+
+        Args:
+            current_player (Player): The current player to check for checkmate.
+
+        Returns:
+            bool: True if the current player is in checkmate, False otherwise.
+        """
         if self.is_check(
             on_color=opposite_color(current_player.color)
         ) and self.is_stalemate(
@@ -364,6 +716,15 @@ class Board:
         return False
 
     def check_if_stalemate(self, current_player):
+        """
+        Check if the current player is in stalemate.
+
+        Args:
+            current_player (Player): The current player to check for stalemate.
+
+        Returns:
+            str or None: A string describing the type of stalemate, or None if not in stalemate.
+        """
         if self.is_stalemate(on_color=opposite_color(current_player.color)):
             return "Stalemate! No legal move"
         elif self.record_of_gameboard["three_rep"]:
@@ -373,14 +734,38 @@ class Board:
 
 
 class Player:
+    """
+    Represents a player participating in a chess game.
+
+    Attributes:
+        websocket (WebSocketServerProtocol): The WebSocket connection associated with the player.
+        username (str): The username of the player.
+        color (Color): The color of the player's pieces (either Color.WHITE or Color.BLACK).
+    """
+
     def __init__(self, websocket, username, color):
+        """
+        Initialize a new player with the provided WebSocket, username, and color.
+        """
         self.username = username
         self.websocket = websocket
         self.color = color
 
 
 class Game:
-    instances = []
+    """
+    Represents a chess game.
+
+    Attributes:
+        board (Board): The chessboard on which the game is played.
+        player_1 (Player): The first player participating in the game.
+        player_2 (Player): The second player participating in the game.
+        winner (Player): The player who has won the game, None if the game is ongoing or drawn.
+        is_over (bool): True if the game has ended, False otherwise.
+        result_description (str): Description of the game result (e.g., "Check-Mate!", "Stalemate!").
+        id (int): The unique identifier of the game.
+    """
+    instances = [] # List to store all created game instances.
 
     def __init__(self, id):
         self.board = Board()
@@ -390,17 +775,51 @@ class Game:
         self.is_over = False
         self.result_description = ""
         self.id = id
+
+        # Add this game instance to the list of instances after it's created.
         Game.instances.append(self)
 
     @classmethod
     def get(cls, id):
-        return [inst for inst in cls.instances if inst.id == id]
+        """
+        Get the game instance based on its unique identifier.
+
+        Args:
+            id (int): The unique identifier of the game.
+
+        Returns:
+            Game or None: The Game instance with the specified ID, or None if not found.
+        """
+        return next((inst for inst in cls.instances if inst.id == id), None)
 
     def place_players(self, player_1, player_2):
+        """
+        Assign the first and second players to the game.
+
+        Args:
+            player_1 (dict): Information about the first player.
+            player_2 (dict): Information about the second player.
+        """
         self.player_1 = Player(player_1["websocket"], player_1["username"], Color.WHITE)
         self.player_2 = Player(player_2["websocket"], player_2["username"], Color.BLACK)
 
     def handle_move(self, start_field, end_field, websocket):
+        """
+        Handle a move made by a player.
+
+        Args:
+            start_field (str): The starting position of the piece to be moved (e.g., "e2").
+            end_field (str): The ending position of the piece after the move (e.g., "e4").
+            websocket (WebSocketServerProtocol): The WebSocket connection of the player making the move.
+
+        Note:
+            This method is responsible for processing a move made by a player during the chess game.
+            It performs various checks to ensure the move is valid, including checking if the piece
+            can move to the specified destination, if the destination is empty or can be captured,
+            and if the move results in checkmate or stalemate. If the move is legal, it updates the
+            game board accordingly and sends the result to the app server.
+        """
+        # Identify the current player based on the WebSocket object
         if self.player_1.websocket == websocket:
             current_player = self.player_1
         elif self.player_2.websocket == websocket:
@@ -408,28 +827,51 @@ class Game:
         else:
             raise Exception("You are not a participant of game")
 
+        # Check if the move is legal and update the game board accordingly
         self.board.check_if_legal_move(start_field, end_field, current_player)
         self.board.make_move(start_field, end_field)
+        # Check if the move results in checkmate
         if self.board.check_if_checkmate(current_player):
             result_description = f"Check-Mate! {current_player.username} won!"
             self.end_with_win(current_player, result_description)
+        # Check if the move results in stalemate
         if result_description := self.board.check_if_stalemate(current_player):
             self.end_with_draw(result_description)
 
     def end_with_win(self, current_player, result_description):
-        print(result_description )
+        """
+        End the game with a win for the specified player.
+
+        Args:
+            current_player (Player): The player who has won the game.
+            result_description (str): Description of the game result (e.g., "Check-Mate!").
+        """
         self.winner = current_player
         self.result_description = result_description
         self.is_over = True
-        return send_result(self.winner.username, self.id)
+        return send_result_to_app_server(self.winner.username, self.id)
 
     def end_with_draw(self, result_description):
-        print(result_description)
+        """
+        End the game with a draw (stalemate).
+
+        Args:
+            result_description (str): Description of the game result (e.g., "Stalemate!").
+        """
         self.result_description = result_description
         self.is_over = True
-        return send_result("", self.id)
+        return send_result_to_app_server("", self.id)
 
     def get_chessboard(self, websocket):
+        """
+        Get the current chessboard as a string representation for the specified player.
+
+        Args:
+            websocket (WebSocketServerProtocol): The WebSocket connection of the player.
+
+        Returns:
+            str: String representation of the chessboard.
+        """
         board_string = ""
         direct = 1
         if self.player_1.websocket == websocket:

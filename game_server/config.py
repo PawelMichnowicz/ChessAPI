@@ -1,10 +1,13 @@
 # network connection parameters
-PORT = 5050
+PORT_WEBSOCKET = 5050
 QUERY_GET_CHALLANGE = 'query {{challange (gameId: "{}"){{id fromUser {{username eloRating}} toUser {{username eloRating}} eloRatingChanges }} }}'
-URL = "http://app:8000/graphql"
-URL_WEBSOCKET = "ws://localhost:5050"
+MUTATION_END_GAME = (
+    'mutation {{endGame(winnerUsername: "{}", challangeId:"{}"){{challange {{id}} }} }}'
+)
+URL_APP = "http://app:8000/graphql"
+URL_WEBSOCKET = f"ws://localhost:{PORT_WEBSOCKET}"
 
-# commands available to use by user
+# commands available to use by user during the game
 COMMAND_DRAW_OFFER = "draw"
 COMMAND_DRAW_DECLINED = "N"
 COMMAND_DRAW_ACCEPTED = "Y"

@@ -1,21 +1,35 @@
 import json
 import requests
 
-query = """
-    query {
-        allChallanges {
-            id
-        }
-    }"""
-
-query = 'query {{challange (gameId: "{}"){{id fromUser {{username}} toUser {{username}} }} }}'
-query = query.format("47c9e51a-47b2-41de-aedf-535b7e7fb5d3")
+import config
 
 
-def send_result(winner_username, challange_id):
-    URL = "http://app:8000/graphql"
-    mutation = 'mutation {{endGame(winnerUsername: "{}", challangeId:"{}"){{challange {{id}} }} }}'
-    mutation = mutation.format(winner_username, challange_id)
-    response = requests.post(url=URL, json={"query": mutation})
+def send_result_to_app_server(winner_username, challange_id):
+    """Send the game result to the application server.
+
+    Args:
+        winner_username (str): The username of the winner of the game.
+        challange_id (str): The ID of the game challenge.
+
+    Returns:
+        dict: A dictionary containing the response data received from the application server.
+    """
+    mutation = config.MUTATION_END_GAME.format(winner_username, challange_id)
+    response = requests.post(url=config.URL_APP, json={"query": mutation})
+    json_data = json.loads(response.text)
+    return json_data
+
+
+def get_challanges_from_app_server(game_id):
+    """Get challenge data from the application server.
+
+    Args:
+        game_id (str): The ID of the game for which challenge data is requested.
+
+    Returns:
+        dict: A dictionary containing the response data received from the application server.
+    """
+    query = config.QUERY_GET_CHALLANGE.format(game_id)
+    response = requests.post(url=config.URL_APP, json={"query": query})
     json_data = json.loads(response.text)
     return json_data
