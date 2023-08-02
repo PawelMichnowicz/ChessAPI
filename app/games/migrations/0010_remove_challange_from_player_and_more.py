@@ -6,41 +6,60 @@ import games.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('games', '0009_alter_game_loser_alter_game_winner'),
+        ("games", "0009_alter_game_loser_alter_game_winner"),
     ]
 
     operations = [
         migrations.RemoveField(
-            model_name='challange',
-            name='from_player',
+            model_name="challange",
+            name="from_player",
         ),
         migrations.RemoveField(
-            model_name='challange',
-            name='to_player',
+            model_name="challange",
+            name="to_player",
         ),
         migrations.AddField(
-            model_name='challange',
-            name='from_user',
-            field=models.ForeignKey(default=1, on_delete=models.SET(games.models.get_sentinel_user), related_name='my_challenges', to=settings.AUTH_USER_MODEL),
+            model_name="challange",
+            name="from_user",
+            field=models.ForeignKey(
+                default=1,
+                on_delete=models.SET(games.models.get_or_create_deleted_user_instance),
+                related_name="my_challenges",
+                to=settings.AUTH_USER_MODEL,
+            ),
             preserve_default=False,
         ),
         migrations.AddField(
-            model_name='challange',
-            name='to_user',
-            field=models.ForeignKey(default=2, on_delete=models.SET(games.models.get_sentinel_user), related_name='challanges', to=settings.AUTH_USER_MODEL),
+            model_name="challange",
+            name="to_user",
+            field=models.ForeignKey(
+                default=2,
+                on_delete=models.SET(games.models.get_or_create_deleted_user_instance),
+                related_name="challanges",
+                to=settings.AUTH_USER_MODEL,
+            ),
             preserve_default=False,
         ),
         migrations.AlterField(
-            model_name='game',
-            name='loser',
-            field=models.ForeignKey(null=True, on_delete=models.SET(games.models.get_sentinel_user), related_name='loser', to=settings.AUTH_USER_MODEL),
+            model_name="game",
+            name="loser",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=models.SET(games.models.get_or_create_deleted_user_instance),
+                related_name="loser",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
         migrations.AlterField(
-            model_name='game',
-            name='winner',
-            field=models.ForeignKey(null=True, on_delete=models.SET(games.models.get_sentinel_user), related_name='winner', to=settings.AUTH_USER_MODEL),
+            model_name="game",
+            name="winner",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=models.SET(games.models.get_or_create_deleted_user_instance),
+                related_name="winner",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

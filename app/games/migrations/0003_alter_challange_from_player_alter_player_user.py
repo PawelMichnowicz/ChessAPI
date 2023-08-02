@@ -7,21 +7,28 @@ import games.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('games', '0002_challange_player_delete_duel_challange_from_player_and_more'),
+        ("games", "0002_challange_player_delete_duel_challange_from_player_and_more"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='challange',
-            name='from_player',
-            field=models.ForeignKey(on_delete=models.SET(games.models.get_sentinel_user), related_name='my_challenges', to='games.player'),
+            model_name="challange",
+            name="from_player",
+            field=models.ForeignKey(
+                on_delete=models.SET(games.models.get_or_create_deleted_user_instance),
+                related_name="my_challenges",
+                to="games.player",
+            ),
         ),
         migrations.AlterField(
-            model_name='player',
-            name='user',
-            field=models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, related_name='player', to=settings.AUTH_USER_MODEL),
+            model_name="player",
+            name="user",
+            field=models.OneToOneField(
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="player",
+                to=settings.AUTH_USER_MODEL,
+            ),
         ),
     ]

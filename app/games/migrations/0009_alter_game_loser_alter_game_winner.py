@@ -5,20 +5,29 @@ import games.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('games', '0008_alter_challange_game'),
+        ("games", "0008_alter_challange_game"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='game',
-            name='loser',
-            field=models.ForeignKey(null=True, on_delete=models.SET(games.models.get_sentinel_user), related_name='loser', to='games.player'),
+            model_name="game",
+            name="loser",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=models.SET(games.models.get_or_create_deleted_user_instance),
+                related_name="loser",
+                to="games.player",
+            ),
         ),
         migrations.AlterField(
-            model_name='game',
-            name='winner',
-            field=models.ForeignKey(null=True, on_delete=models.SET(games.models.get_sentinel_user), related_name='winner', to='games.player'),
+            model_name="game",
+            name="winner",
+            field=models.ForeignKey(
+                null=True,
+                on_delete=models.SET(games.models.get_or_create_deleted_user_instance),
+                related_name="winner",
+                to="games.player",
+            ),
         ),
     ]

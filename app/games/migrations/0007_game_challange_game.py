@@ -6,24 +6,56 @@ import games.models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('games', '0006_alter_challange_status'),
+        ("games", "0006_alter_challange_status"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Game',
+            name="Game",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('is_draw', models.BooleanField(default=False)),
-                ('loser', models.ForeignKey(on_delete=models.SET(games.models.get_sentinel_user), related_name='loser', to='games.player')),
-                ('winner', models.ForeignKey(on_delete=models.SET(games.models.get_sentinel_user), related_name='winner', to='games.player')),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                ("is_draw", models.BooleanField(default=False)),
+                (
+                    "loser",
+                    models.ForeignKey(
+                        on_delete=models.SET(
+                            games.models.get_or_create_deleted_user_instance
+                        ),
+                        related_name="loser",
+                        to="games.player",
+                    ),
+                ),
+                (
+                    "winner",
+                    models.ForeignKey(
+                        on_delete=models.SET(
+                            games.models.get_or_create_deleted_user_instance
+                        ),
+                        related_name="winner",
+                        to="games.player",
+                    ),
+                ),
             ],
         ),
         migrations.AddField(
-            model_name='challange',
-            name='game',
-            field=models.OneToOneField(blank=True, default=None, null=True, on_delete=django.db.models.deletion.CASCADE, related_name='game', to='games.game'),
+            model_name="challange",
+            name="game",
+            field=models.OneToOneField(
+                blank=True,
+                default=None,
+                null=True,
+                on_delete=django.db.models.deletion.CASCADE,
+                related_name="game",
+                to="games.game",
+            ),
         ),
     ]

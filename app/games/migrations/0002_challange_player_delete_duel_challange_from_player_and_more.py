@@ -8,38 +8,77 @@ import uuid
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
         migrations.swappable_dependency(settings.AUTH_USER_MODEL),
-        ('games', '0001_initial'),
+        ("games", "0001_initial"),
     ]
 
     operations = [
         migrations.CreateModel(
-            name='Challange',
+            name="Challange",
             fields=[
-                ('id', models.UUIDField(default=uuid.uuid4, editable=False, primary_key=True, serialize=False)),
-                ('status', models.CharField(choices=[('waiting', 'Waiting'), ('in_game', 'In game'), ('done', 'Done')], max_length=25)),
+                (
+                    "id",
+                    models.UUIDField(
+                        default=uuid.uuid4,
+                        editable=False,
+                        primary_key=True,
+                        serialize=False,
+                    ),
+                ),
+                (
+                    "status",
+                    models.CharField(
+                        choices=[
+                            ("waiting", "Waiting"),
+                            ("in_game", "In game"),
+                            ("done", "Done"),
+                        ],
+                        max_length=25,
+                    ),
+                ),
             ],
         ),
         migrations.CreateModel(
-            name='Player',
+            name="Player",
             fields=[
-                ('id', models.BigAutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('user', models.OneToOneField(on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
+                (
+                    "id",
+                    models.BigAutoField(
+                        auto_created=True,
+                        primary_key=True,
+                        serialize=False,
+                        verbose_name="ID",
+                    ),
+                ),
+                (
+                    "user",
+                    models.OneToOneField(
+                        on_delete=django.db.models.deletion.CASCADE,
+                        to=settings.AUTH_USER_MODEL,
+                    ),
+                ),
             ],
         ),
         migrations.DeleteModel(
-            name='Duel',
+            name="Duel",
         ),
         migrations.AddField(
-            model_name='challange',
-            name='from_player',
-            field=models.ForeignKey(on_delete=models.SET(games.models.get_sentinel_user), related_name='yours_challenges', to='games.player'),
+            model_name="challange",
+            name="from_player",
+            field=models.ForeignKey(
+                on_delete=models.SET(games.models.get_or_create_deleted_user_instance),
+                related_name="yours_challenges",
+                to="games.player",
+            ),
         ),
         migrations.AddField(
-            model_name='challange',
-            name='to_player',
-            field=models.ForeignKey(on_delete=models.SET(games.models.get_sentinel_user), related_name='challanges', to='games.player'),
+            model_name="challange",
+            name="to_player",
+            field=models.ForeignKey(
+                on_delete=models.SET(games.models.get_or_create_deleted_user_instance),
+                related_name="challanges",
+                to="games.player",
+            ),
         ),
     ]
