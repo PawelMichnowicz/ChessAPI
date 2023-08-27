@@ -15,16 +15,25 @@ The client allows users to play chess in the terminal.
 
 ## Django Server (Chess Game Django Server)
 
-The Django server is responsible for handling user authentication and managing challenges and game results. It uses GraphQL to expose API endpoints for interacting with the client and managing user data.
+The Django server is responsible for handling users authentication, managing challenges and game results. It uses GraphQL to expose API endpoints for interacting and managing user data.
 
-## How to Run
+## Usage and installation
 
-To run the entire application, you need to have Docker and Docker Compose installed on your system.
-
-1. Clone this repository:
-git clone https://github.com/your-username/chess-game.git
-
-2. Build the Docker images and start the services:
+1. Clone repository and build the Docker images and start the services:
+```sh
+git clone https://github.com/PawelMichnowicz/API-TransApp.git
 docker-compose up --build
+```
 
+2. Run chess game client script
+```sh
+cd ChessAPI
+python ./game_server/client.py
+```
+3. You can start game by input predefined users and challange instances
+```sh
+username_1 = player_1
+username_2 = player_2
+challange id = 12341234-1234-1234-1234-aaaaaaaaaaaa
+```
 
