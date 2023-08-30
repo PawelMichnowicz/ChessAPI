@@ -211,19 +211,42 @@ class Pawn(Piece):
         Returns:
             list: A list of chess notations representing the possible diagonal capture moves for the Pawn.
         """
+
         x, y = self.position
         list_moves = []
+
         for new_position in [
             (x - 1, y + steps[self.color]),
             (x + 1, y + steps[self.color]),
         ]:
-            new_position = to_chess_notation(new_position)
+            new_position_code = to_chess_notation(new_position)
             if (
-                board.is_in(new_position)
-                and not board.is_blank(new_position)
-                and board[new_position].color != self.color
+                board.is_in(new_position_code)
+                and isinstance(board[new_position_code], Piece)
+                and board[new_position_code].color != self.color
             ):
-                list_moves.append(new_position)
+                list_moves.append(new_position_code)
+
+            alongside_position_code = to_chess_notation((new_position[0], y))
+            if (
+                board.is_in(new_position_code)
+                and isinstance(board[alongside_position_code], Pawn)
+                and board[alongside_position_code].color != self.color
+                and (
+                    (
+                        self.color == Color.WHITE
+                        and y == 4
+                        and board.last_move_black[1] == alongside_position_code
+                    )
+                    or (
+                        self.color == Color.BLACK
+                        and y == 3
+                        and board.last_move_white[1] == alongside_position_code
+                    )
+                )
+            ):
+                list_moves.append(new_position_code)
+
         return list_moves
 
     def available_moves(self, board, check=False):
@@ -435,6 +458,8 @@ class Board:
         self.rook_a = {Color.WHITE: self["a1"], Color.BLACK: self["a8"]}
         self.rook_h = {Color.WHITE: self["h1"], Color.BLACK: self["h8"]}
         self.record_of_moves = {0: []}
+        self.last_move_black = (None, None)
+        self.last_move_white = (None, None)
         self.record_of_gameboard = {"one_rep": [], "two_rep": [], "three_rep": []}
         self.save_gameboard(self.gameboard)
         self.fifty_move_count = 0
@@ -485,13 +510,15 @@ class Board:
             self.all_pieces[Color.BLACK].update({black_piece, black_pawn})
 
             # Put pieces on the board
-            y_idx = chr(num + 97) # converts the column index 'num' to the corresponding lowercase letter (a-h) in ASCII.
+            y_idx = chr(
+                num + 97
+            )  # converts the column index 'num' to the corresponding lowercase letter (a-h) in ASCII.
             self[f"{y_idx}7"] = black_pawn
             self[f"{y_idx}8"] = black_piece
             self[f"{y_idx}2"] = white_pawn
             self[f"{y_idx}1"] = white_piece
 
-    def is_stalemate(self, on_color, check=False):
+    def is_no_legal_move(self, on_color, check=False):
         """
         Check if the player of the specified color has no legal move.
 
@@ -567,8 +594,10 @@ class Board:
         piece.last_move = num_move
         if piece.color == Color.WHITE:
             self.record_of_moves[num_move + 1] = [f"{start_field}:{end_field}"]
+            self.last_move_white = (start_field, end_field)
         else:
             self.record_of_moves[num_move].append(f"{start_field}:{end_field}")
+            self.last_move_black = (start_field, end_field)
 
     def save_gameboard(self, gameboard):
         """
@@ -627,6 +656,16 @@ class Board:
             if not simulate_board:
                 # Reset the fifty-move counter if it is a capturing move
                 self.fifty_move_count = 0
+
+        # Check if en passant was made and involved it
+        if isinstance(piece, Pawn) and start_field[0]!=end_field[0]:
+            direct = piece.pawn_steps[piece.color]
+            captured_pawn_position = end_field[0] +  str(int(end_field[1])-direct)
+            captured_pawn = board[captured_pawn_position]
+
+            board.all_pieces[captured_pawn.color].discard(captured_pawn)
+            board[captured_pawn_position] = self.EMPTY
+
 
         # Check if the move is castling for the King
         elif isinstance(piece, King) and not piece.last_move:
@@ -709,7 +748,7 @@ class Board:
         """
         if self.is_check(
             on_color=opposite_color(current_player.color)
-        ) and self.is_stalemate(
+        ) and self.is_no_legal_move(
             on_color=opposite_color(current_player.color), check=True
         ):
             return True
@@ -725,7 +764,7 @@ class Board:
         Returns:
             str or None: A string describing the type of stalemate, or None if not in stalemate.
         """
-        if self.is_stalemate(on_color=opposite_color(current_player.color)):
+        if self.is_no_legal_move(on_color=opposite_color(current_player.color)):
             return "Stalemate! No legal move"
         elif self.record_of_gameboard["three_rep"]:
             return "Stalemate! 3-fold repetition"
@@ -765,7 +804,8 @@ class Game:
         result_description (str): Description of the game result (e.g., "Check-Mate!", "Stalemate!").
         id (int): The unique identifier of the game.
     """
-    instances = [] # List to store all created game instances.
+
+    instances = []  # List to store all created game instances.
 
     def __init__(self, id):
         self.board = Board()
@@ -877,6 +917,6 @@ class Game:
         if self.player_1.websocket == websocket:
             direct = -1
         for line in self.board.gameboard[::direct]:
-            board_string += str(line)
+            board_string += str(line[:: direct * (-1)])
             board_string += "\n"
         return board_string
