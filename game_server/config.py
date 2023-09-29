@@ -22,3 +22,11 @@ MESSAGE_DRAW_ACCEPTED = "Accepted"
 MESSAGE_END_GAME = "end game"
 MESSAGE_INCORRECT_MOVE = "Try again:"
 MESSAGE_CORRECT_MOVE = "move_ok"
+
+# illegal move or action description
+EMPTY_START_FIELD = "That is empty field!"
+NOT_YOUR_PIECE = "It is not your piece!"
+ILLEGAL_MOVE = "Invalid move! Possibilities of this piece: {}"
+ILLEGAL_MOVE_CHECK_WARNING = "Illegal move due to attack on your king"
+INVALID_PARTICIPANT = "You are not a participant of game"
+WRONG_COLOR = "Invalid color"

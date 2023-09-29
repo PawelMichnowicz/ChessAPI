@@ -1,7 +1,8 @@
 import copy
 from abc import ABC, abstractmethod
-
 from enum import Enum
+
+import config
 from graph import send_result_to_app_server
 
 
@@ -33,7 +34,7 @@ def opposite_color(color):
     elif color == Color.WHITE:
         return Color.BLACK
     else:
-        raise Exception("Invalid color")
+        raise Exception(config.WRONG_COLOR)
 
 
 def to_chess_notation(position):
@@ -408,7 +409,6 @@ class King(Piece):
             if potential_board.is_check(on_color=self.color):
                 possible_moves.remove(move)
 
-
         # check if castling is available and add to list of moves
         if all(
             [
@@ -660,14 +660,13 @@ class Board:
                 self.fifty_move_count = 0
 
         # Check if en passant was made and involved it
-        if isinstance(piece, Pawn) and start_field[0]!=end_field[0]:
+        if isinstance(piece, Pawn) and start_field[0] != end_field[0]:
             direct = piece.pawn_steps[piece.color]
-            captured_pawn_position = end_field[0] +  str(int(end_field[1])-direct)
+            captured_pawn_position = end_field[0] + str(int(end_field[1]) - direct)
             captured_pawn = board[captured_pawn_position]
 
             board.all_pieces[captured_pawn.color].discard(captured_pawn)
             board[captured_pawn_position] = self.EMPTY
-
 
         # Check if the move is castling for the King
         elif isinstance(piece, King) and not piece.last_move:
@@ -726,17 +725,17 @@ class Board:
         piece = self[start_field]
         check = self.is_check(on_color=current_player.color)
         if piece == self.EMPTY:
-            raise Exception("That is empty field!")
+            raise Exception(config.EMPTY_START_FIELD)
         if piece.color != current_player.color:
-            raise Exception("It is not your piece!")
+            raise Exception(config.NOT_YOUR_PIECE)
         if end_field not in piece.available_moves(self, check=check):
             raise Exception(
-                f"Invalid move! Possibilities of this piece: {piece.available_moves(self, check=check)}"
+                config.ILLEGAL_MOVE.format(piece.available_moves(self, check=check))
             )
 
         potential_board = self.simulate_move(start_field, end_field)
         if potential_board.is_check(on_color=current_player.color):
-            raise Exception("Illegal move due to attack on your king")
+            raise Exception(config.ILLEGAL_MOVE_CHECK_WARNING)
 
     def check_if_checkmate(self, current_player):
         """
@@ -867,7 +866,7 @@ class Game:
         elif self.player_2.websocket == websocket:
             current_player = self.player_2
         else:
-            raise Exception("You are not a participant of game")
+            raise Exception(config.INVALID_PARTICIPANT)
 
         # Check if the move is legal and update the game board accordingly
         self.board.check_if_legal_move(start_field, end_field, current_player)
