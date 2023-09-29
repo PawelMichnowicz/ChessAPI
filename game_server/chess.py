@@ -227,6 +227,7 @@ class Pawn(Piece):
             ):
                 list_moves.append(new_position_code)
 
+            # check en passant possibility
             alongside_position_code = to_chess_notation((new_position[0], y))
             if (
                 board.is_in(new_position_code)
@@ -402,10 +403,11 @@ class King(Piece):
         possible_moves = self.possible_moves(
             self.royal_steps, board, repeat_steps=False
         )
-        for move in possible_moves:
+        for move in reversed(possible_moves):
             potential_board = board.simulate_move(self.position_code, move)
             if potential_board.is_check(on_color=self.color):
                 possible_moves.remove(move)
+
 
         # check if castling is available and add to list of moves
         if all(
