@@ -168,7 +168,7 @@ class ChessServer:
             elif message == config.COMMAND_GIVE_UP:
                 winner = (
                     game.player_1
-                    if websocket == game.player_1.websocket
+                    if websocket == game.player_2.websocket
                     else game.player_2
                 )
                 game.end_with_win(
