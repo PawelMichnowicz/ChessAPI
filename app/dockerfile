@@ -3,4 +3,3 @@ RUN mkdir /code
 WORKDIR /code
 COPY . .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
-#CMD ["python3", "manage.py", "runserver", "0.0.0.0:8000"]

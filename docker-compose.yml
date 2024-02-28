@@ -14,11 +14,31 @@ services:
 
   app:
     build: ./app
-    environment:
-      - PYTHONUNBUFFERED=1
     ports:
       - "8000:8000"
     volumes:
       - ./app:/code
-    command: bash -c "python manage.py migrate --noinput && python manage.py create_predefined_challange && python manage.py runserver 0.0.0.0:8000"
+    command: >
+      bash -c "python manage.py migrate --noinput &&
+               python manage.py create_predefined_challange &&
+               python manage.py runserver 0.0.0.0:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+      - DB_HOST=db
+      - DB_NAME=chessdb
+      - DB_USER=userdb
+      - DB_PASS=changepassword
+    depends_on:
+      - db
 
+  db:
+    image: postgres:13-alpine
+    volumes:
+      - chess-db-data:/var/lib/postgresql/data
+    environment:
+      - POSTGRES_DB=chessdb
+      - POSTGRES_USER=userdb
+      - POSTGRES_PASSWORD=changepassword
+
+volumes:
+  chess-db-data:

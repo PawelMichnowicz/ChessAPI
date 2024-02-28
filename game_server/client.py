@@ -149,7 +149,7 @@ class ChessClient:
 
         await self.authenticate_user()
         await self.gather_game_info()
-        board = await self.ws.recv() # Get initial board before any move
+        board = await self.ws.recv()  # Get initial board before any move
         await self.display_game_state(board)
 
         self.game_is_on = True
@@ -181,7 +181,7 @@ class ChessClient:
 
             # If the server informs about a draw offer(by current player), handle the opponent's decision.
             if msg == config.MESSAGE_DRAW_OFFER:
-                decision = await self.ws.recv() # Wait for opponent decision
+                decision = await self.ws.recv()  # Wait for opponent decision
                 if decision == config.MESSAGE_DRAW_DECLINED:
                     continue
                 elif decision == config.MESSAGE_DRAW_ACCEPTED:
@@ -212,12 +212,14 @@ class ChessClient:
             Exception: If an unknown message is received from the server.
         """
         print("Waiting for opponent......")
-        msg = await self.ws.recv() # Wait for the server's response.
+        msg = await self.ws.recv()  # Wait for the server's response.
 
         # If the server informs about a draw offer, prompt the player to respond.
         if msg == config.MESSAGE_DRAW_OFFER:
             print("Draw offered:")
-            while True: # Keep repeating until an acceptable command or message is received.
+            while (
+                True
+            ):  # Keep repeating until an acceptable command or message is received.
                 draw_response = input(
                     f"Type {config.COMMAND_DRAW_ACCEPTED}/{config.COMMAND_DRAW_DECLINED}: "
                 )
