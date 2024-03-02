@@ -1,5 +1,6 @@
 FROM python:3.10.2-slim
 RUN mkdir /game
-COPY . /game/
-RUN pip install --no-cache-dir --upgrade -r game/requirements.txt
-# CMD ["python3", "game/server.py"]
+WORKDIR /game
+COPY requirements.txt ./
+COPY app/ .
+RUN pip install --no-cache-dir --upgrade -r requirements.txt
