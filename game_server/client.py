@@ -24,7 +24,8 @@ class ChessClient:
 
     @staticmethod
     def clear_terminal():
-        """Clear the terminal screen based on the operating system used (Windows, macOS, or Linux)."""
+        """Clear the terminal screen based on the operating system used (Windows, macOS,
+        or Linux)."""
         system = platform.system()
         if system == "Windows":
             os.system("cls")
@@ -65,14 +66,18 @@ class ChessClient:
             2,
         )
         self.game_info_description = (
-            f"{self.user_data['username']}[{self.user_data['elo_rating']}] Vs. {self.user_data['opponent_username']}[{self.user_data['opponent_elo_rating']}] \n"
-            f"win:{self.user_data['elo_update_on_win']:+}pkt   draw:{self.user_data['elo_update_on_draw']:+}pkt   lose:{self.user_data['elo_update_on_lose']:+}pkt \n"
-            f"[{config.COMMAND_DRAW_OFFER}]-offer a draw   [{config.COMMAND_GIVE_UP}]-give up the game"
+            f"{self.user_data['username']}[{self.user_data['elo_rating']}] Vs. "
+            f"{self.user_data['opponent_username']}"
+            f"[{self.user_data['opponent_elo_rating']}] \n"
+            "win:{self.user_data['elo_update_on_win']:+}pkt   "
+            "draw:{self.user_data['elo_update_on_draw']:+}pkt   "
+            "lose:{self.user_data['elo_update_on_lose']:+}pkt \n"
+            f"[{config.COMMAND_DRAW_OFFER}]-offer a draw   "
+            f"[{config.COMMAND_GIVE_UP}]-give up the game"
         )
 
     async def display_game_state(self, board):
-        """
-        Display the game state (board, player info, last move)
+        """Display the game state (board, player info, last move)
 
         Args:
             board ([str]): A string representing the chess board.
@@ -87,8 +92,7 @@ class ChessClient:
             print(f"Opponent's last move: {self.last_move}")
 
     async def display_game_result(self, board):
-        """
-        Display the game result after it ends.
+        """Display the game result after it ends.
 
         Args:
             board ([str]): A string representing the chess board.
@@ -106,43 +110,50 @@ class ChessClient:
                 f"You gain {self.user_data['elo_update_on_win']} points through a win!"
             )
             print(
-                f"Now your elo rating is equal {self.user_data['elo_rating_changes']['win']}"
+                f"Now your elo rating is equal "
+                f"{self.user_data['elo_rating_changes']['win']}"
             )
         elif (
             self.user_data["username"] is None
             and self.user_data["elo_rating_changes"]["win"] > 0
         ):
             print(
-                f"You gain {self.user_data['elo_update_on_draw']} points through a draw!"
+                f"You gain {self.user_data['elo_update_on_draw']} "
+                f"points through a draw!"
             )
             print(
-                f"Now your elo rating is equal {self.user_data['elo_rating_changes']['draw']}"
+                f"Now your elo rating is equal "
+                f"{self.user_data['elo_rating_changes']['draw']}"
             )
         elif (
             self.user_data["username"] is None
             and self.user_data["elo_rating_changes"]["win"] < 0
         ):
             print(
-                f"You lose {self.user_data['elo_update_on_draw']} points through a draw!"
+                f"You lose {self.user_data['elo_update_on_draw']} "
+                f"points through a draw!"
             )
             print(
-                f"Now your elo rating is equal {self.user_data['elo_rating_changes']['draw']}"
+                f"Now your elo rating is equal "
+                f"{self.user_data['elo_rating_changes']['draw']}"
             )
         else:
             print(
-                f"You lose {self.user_data['elo_update_on_lose']} points through a lose!"
+                f"You lose {self.user_data['elo_update_on_lose']} "
+                f"points through a lose!"
             )
             print(
-                f"Now your elo rating is equal {self.user_data['elo_rating_changes']['lose']}"
+                f"Now your elo rating is equal "
+                f"{self.user_data['elo_rating_changes']['lose']}"
             )
         return
 
     async def listen(self):
-        """
-        Listen for messages from the server and handle the chess game interaction.
+        """Listen for messages from the server and handle the chess game interaction.
 
-        It manages turn-taking, displaying game information and updating the game state accordingly.
-        The client can offer a draw or resign the game. It receives and displays the game board, game info, and messages from the server.
+        It manages turn-taking, displaying game information and updating the game state
+        accordingly. The client can offer a draw or resign the game. It receives and
+        displays the game board, game info, and messages from the server.
         """
         await self.connect()
         print("Connected to the server!")
@@ -168,9 +179,8 @@ class ChessClient:
         await self.ws.close()
 
     async def make_move(self):
-        """
-        Handles the player's turn during the game.
-        It sends the move or command to the server and processes the response to determine the next actions.
+        """Handles the player's turn during the game. It sends the move or command to
+        the server and processes the response to determine the next actions.
 
         Raises:
             Exception: If an unknown message is received from the server.
@@ -179,7 +189,7 @@ class ChessClient:
             await self.ws.send(input("Your Turn: "))
             msg = await self.ws.recv()
 
-            # If the server informs about a draw offer(by current player), handle the opponent's decision.
+            # If the server informs about a draw offer handle the opponent's decision.
             if msg == config.MESSAGE_DRAW_OFFER:
                 decision = await self.ws.recv()  # Wait for opponent decision
                 if decision == config.MESSAGE_DRAW_DECLINED:
@@ -205,8 +215,8 @@ class ChessClient:
                 raise Exception("Unknown message")
 
     async def wait_for_opponent(self):
-        """
-        Wait for the opponent's move or command and processes the server's response to determine the next actions.
+        """Wait for the opponent's move or command and processes the server's response
+        to determine the next actions.
 
         Raises:
             Exception: If an unknown message is received from the server.
@@ -221,8 +231,10 @@ class ChessClient:
                 True
             ):  # Keep repeating until an acceptable command or message is received.
                 draw_response = input(
-                    f"Type {config.COMMAND_DRAW_ACCEPTED}/{config.COMMAND_DRAW_DECLINED}: "
+                    f"Type {config.COMMAND_DRAW_ACCEPTED}/"
+                    f"{config.COMMAND_DRAW_DECLINED}: "
                 )
+
                 if draw_response.upper() == config.COMMAND_DRAW_ACCEPTED:
                     self.game_is_on = False
                     await self.ws.send(draw_response)

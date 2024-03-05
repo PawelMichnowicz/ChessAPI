@@ -13,9 +13,6 @@ def get_or_create_deleted_user_instance():
     """
     Creates or retrieves a special 'deleted' user.
 
-    If a user with the username 'deleted' exists in the database, this function retrieves it.
-    Otherwise, it creates a new user with the username 'deleted' and returns it.
-
     Returns:
         User: The 'deleted' user instance.
     """
@@ -31,6 +28,7 @@ class StatusChoice(models.TextChoices):
         IN_GAME (str): The Challange is in progress and a game has started.
         DONE (str): The Challange is completed.
     """
+
     WAITING = "waiting", "Waiting"
     IN_GAME = "in_game", "In game"
     DONE = "done", "Done"
@@ -42,9 +40,10 @@ class Game(models.Model):
 
     Attributes:
         is_draw (bool): Indicates if the game ended in a draw.
-        winner (User): The User who won the game, or None if the game is ongoing or ended in a draw.
-        loser (User): The User who lost the game, or None if the game is ongoing or ended in a draw.
+        winner (User): The User who won the game, or None if the game ended in a draw.
+        loser (User): The User who lost the game, or None if the game ended in a draw.
     """
+
     is_draw = models.BooleanField(default=False)
     winner = models.ForeignKey(
         get_user_model(),
@@ -66,11 +65,12 @@ class Challange(models.Model):
 
     Attributes:
         id (UUIDField): A unique identifier for the challenge.
-        status (str): The current status of the challenge, chosen from the StatusChoice class.
+        status (StatusChoice): The current status of the challenge.
         from_user (User): The User who sent the challenge.
         to_user (User): The User who received the challenge.
-        game (Game): The associated Game instance, or None if the challenge has not led to a game yet.
+        game (Game): The associated Game instance.
     """
+
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
     status = models.CharField(
         max_length=25, choices=StatusChoice.choices, default=StatusChoice.WAITING
@@ -101,7 +101,7 @@ class Challange(models.Model):
         Args:
             player (User): The User who played the game.
             opponent (User): The User who played against the player.
-            result (float): The result of the game (1.0 for a win, 0.5 for a draw, 0.0 for a loss).
+            result (float): The result of the game (1.0-win, 0.5-draw, 0.0-loss).
 
         Returns:
             float: The updated Elo rating of the player after the game.

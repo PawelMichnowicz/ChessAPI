@@ -12,7 +12,7 @@ def send_result_to_app_server(winner_username, challange_id):
         challange_id (str): The ID of the game challenge.
 
     Returns:
-        dict: A dictionary containing the response data received from the application server.
+        dict: A dictionary containing the response data received from the server.
     """
     mutation = config.MUTATION_END_GAME.format(winner_username, challange_id)
     response = requests.post(url=config.URL_APP, json={"query": mutation})
@@ -27,7 +27,7 @@ def get_challanges_from_app_server(game_id):
         game_id (str): The ID of the game for which challenge data is requested.
 
     Returns:
-        dict: A dictionary containing the response data received from the application server.
+        dict: A dictionary containing the response data received from the server.
     """
     query = config.QUERY_GET_CHALLANGE.format(game_id)
     response = requests.post(url=config.URL_APP, json={"query": query})

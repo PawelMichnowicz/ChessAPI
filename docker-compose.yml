@@ -3,17 +3,21 @@ version: "3.9"
 services:
 
   game:
-    build: ./game_server
+    build:
+      context: .
+      dockerfile: game_server/dockerfile
     ports:
       - "5050:5050"
-    command: bash -c "python -u game/server.py"
+    command: bash -c "python -u server.py"
     volumes:
       - ./game_server:/game
     depends_on:
       - app
 
   app:
-    build: ./app
+    build:
+      context: .
+      dockerfile: app/dockerfile
     ports:
       - "8000:8000"
     volumes:

@@ -1,9 +1,8 @@
 import graphene
-from graphene_django import DjangoObjectType
-from graphene.types.json import JSONString
 from django.contrib.auth import get_user_model
-
 from games.models import Challange, Game, StatusChoice
+from graphene.types.json import JSONString
+from graphene_django import DjangoObjectType
 
 
 class UserType(DjangoObjectType):
@@ -22,7 +21,7 @@ class ChallangeType(DjangoObjectType):
 
     Fields:
         user (UserType): The user who sent the challenge.
-        elo_rating_changes (JSONString): The Elo rating possibilities for each user after the challenge.
+        elo_rating_changes (JSONString): Potential Elo rating updates for each scenario.
     """
 
     user = graphene.Field(UserType)
@@ -34,7 +33,8 @@ class ChallangeType(DjangoObjectType):
 
     def resolve_elo_rating_changes(self, info):
         """
-        Calculate the possible Elo rating that will be assigned to the playe after the challenge, depending on the result.
+        Calculate the possible Elo rating that will be assigned to the player after
+        the challenge, depending on the result.
 
         Returns:
             dict: A dictionary contains possible Elo ratings
@@ -61,6 +61,7 @@ class Query(graphene.ObjectType):
     Fields:
         challange (ChallangeType): Query to fetch a challenge by its game_id.
     """
+
     challange = graphene.Field(ChallangeType, game_id=graphene.String())
 
     def resolve_challange(root, info, game_id):
@@ -80,6 +81,7 @@ class CreateChallange(graphene.Mutation):
     Arguments:
         user_id (ID): The ID of the user who receives the challenge.
     """
+
     class Arguments:
         user_id = graphene.ID()
 
@@ -101,6 +103,7 @@ class GameType(DjangoObjectType):
     """
     Represents a game played between two users.
     """
+
     class Meta:
         model = Challange
         fields = "__all__"
@@ -117,6 +120,7 @@ class EndGame(graphene.Mutation):
     Fields:
         challange (ChallangeType): The updated challenge instance.
     """
+
     class Arguments:
         challange_id = graphene.ID()
         winner_username = graphene.String()
@@ -162,6 +166,7 @@ class Mutation(graphene.ObjectType):
     """
     The root mutation for GraphQL.
     """
+
     create_challange = CreateChallange.Field()
     end_game = EndGame.Field()
 
