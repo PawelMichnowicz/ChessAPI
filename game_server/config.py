@@ -1,6 +1,9 @@
 # network connection parameters
 PORT_WEBSOCKET = 5050
-QUERY_GET_CHALLANGE = 'query {{challange (gameId: "{}"){{id fromUser {{username eloRating}} toUser {{username eloRating}} eloRatingChanges }} }}'
+QUERY_GET_CHALLANGE = (
+    'query {{challange (gameId: "{}"){{id fromUser {{username eloRating}} '
+    'toUser {{username eloRating}} eloRatingChanges }} }}'
+)
 MUTATION_END_GAME = (
     'mutation {{endGame(winnerUsername: "{}", challangeId:"{}"){{challange {{id}} }} }}'
 )

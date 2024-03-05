@@ -10,7 +10,7 @@ ELO_START_VALUE = 400
 
 class UserManager(BaseUserManager):
     """
-    Manager for the User model, provides methods for creating regular users and superusers.
+    Manager provides methods for creating regular users and superusers.
     """
 
     def create_user(self, username, password=None, **extra_fields):

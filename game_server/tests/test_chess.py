@@ -1,5 +1,5 @@
 import pytest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 import config
 from chess import Bishop, Board, Color, Game, King, Knight, Pawn, Player, Queen, Rook
@@ -7,10 +7,7 @@ from chess import Bishop, Board, Color, Game, King, Knight, Pawn, Player, Queen,
 
 @pytest.fixture
 def game():
-    """
-    Fixture to initialize a test instance of the Game class.
-
-    This fixture can be used as a parameter in tests that require a preconfigured game instance.
+    """Fixture to initialize a test instance of the Game class.
 
     Returns:
         Game: An instance of the Game class representing a preconfigured test game.
@@ -23,13 +20,13 @@ def game():
 
 @pytest.fixture
 def game_with_empty_board():
-    """
-    Fixture to initialize a test instance of the Game class with an empty chessboard.
+    """Fixture to initialize a test instance of the Game class with an empty chessboard.
 
-    This fixture can be used as a parameter in tests that require a preconfigured game instance with an empty chessboard, allowing for custom piece placement during the test.
+    This fixture can be used as a parameter in tests that require a game instance
+    with an empty chessboard, allowing for custom piece placement during the test.
 
     Returns:
-        Game: An instance of the Game class representing a test game with an empty chessboard.
+        Game: Instance of the Game class representing a game with an empty chessboard.
     """
     game = Game("test_id")
     game.player_1 = Player("websocket_white", "white", Color.WHITE)
@@ -41,17 +38,17 @@ def game_with_empty_board():
 
 
 def put_piece_on_board(board, piece_class, color, position):
-    """
-    Helper function to place a chess piece on the board at a specified position.
+    """Helper function to place a chess piece on the board at a specified position.
 
-    This function creates an instance of a specified chess piece class with the given color and places it on the
-    chessboard at the specified position. Additionally, it updates the set of all pieces of the given color.
+    This function creates an instance of a specified chess piece class with the given
+    color and places it on the chessboard at the specified position.
+    Additionally, it updates the set of all pieces of the given color.
 
     Args:
         board (Board): The chessboard instance.
         piece_class (class): The class of the chess piece to be placed.
         color (Color): The color of the chess piece (Color.WHITE or Color.BLACK).
-        position (str): The algebraic notation of the position on the chessboard (e.g3, "a1", "b2").
+        position (str): The notation of the position on the chessboard ("g3" or "b2")
     """
     y_idx = ord(position[0]) - 97
     x_idx = int(position[1]) - 1
@@ -63,10 +60,11 @@ def put_piece_on_board(board, piece_class, color, position):
 
 
 def test_setting_initial_board():
-    """
-    Test case for setting up the initial chessboard.
+    """Test case for setting up the initial chessboard.
 
-    This function checks if the initial configuration of the chessboard is set up correctly by verifies the correct setup of pieces in specific positions on the chessboard.
+    This function checks if the initial configuration of the chessboard is set up
+    correctly by verifies the correct setup of pieces in specific positions on the
+    chessboard.
     """
     board = Board()
     assert vars(board["a2"]) == vars(Pawn(Color.WHITE, (0, 1), "a2"))
@@ -79,8 +77,7 @@ def test_setting_initial_board():
 
 
 def test_valid_castling(game):
-    """
-    Test cases for valid castling moves in a chess game.
+    """Test cases for valid castling moves in a chess game.
 
     This function tests two valid castling scenarios:
     1. Castling on the queen side for the white player.
@@ -103,8 +100,7 @@ def test_valid_castling(game):
 
 
 def test_invalid_castling(game):
-    """
-    Test cases for invalid castling moves in a chess game.
+    """Test cases for invalid castling moves in a chess game.
 
     This function tests two types of invalid castling scenarios:
     1. Castling with pieces between the rook and king.
@@ -139,11 +135,10 @@ def test_invalid_castling(game):
 
 
 def test_pieces_available_moves(game_with_empty_board):
-    """
-    Test the 'available_moves' method of chess pieces in a specific game scenario.
+    """Test the 'available_moves' method of chess pieces in a specific game scenario.
 
     The test sets up a chessboard with various pieces of different types and colors.
-    It then verifies that the 'available_moves' method of each piece returns the expected valid moves.
+    It verifies that the 'available_moves' method of each piece returns expected moves.
 
     Visual representation of the initial chessboard setup:
     [' ', ' ', ' ', ' ', ' ', ' ', ' ', K-b]
@@ -194,8 +189,7 @@ def test_pieces_available_moves(game_with_empty_board):
 
 
 def test_illegal_moves(game_with_empty_board):
-    """
-    Test case for validating an illegal move attempted against chess rules
+    """Test case for validating an illegal move attempted against chess rules.
 
     Visual representation of the initial chessboard setup:
     [' ', ' ', ' ', ' ', ' ', ' ', ' ', K-b]
@@ -249,12 +243,12 @@ def test_illegal_moves(game_with_empty_board):
     ],
 )
 def test_checkmate(start_field, end_field, game_with_empty_board):
-    """
-    Test the checkmate scenario in a chess game.
+    """Test the checkmate scenario in a chess game.
 
     This test covers two types of checkmate scenarios:
     1. Classic checkmate scenario. ("a3", "c2")
-    2. Checkmate scenario involving a pinned piece preventing the capture of the attacking king. ("d1", "b1")
+    2. Checkmate scenario involving a pinned piece preventing the capture of the
+        attacking king. ("d1", "b1")
 
     Visual representation of the initial chessboard setup:
     [' ', ' ', K-b, ' ', ' ', ' ', ' ', ' ']
@@ -292,8 +286,8 @@ def test_checkmate(start_field, end_field, game_with_empty_board):
 
 
 def test_stalemate_repetition(game_with_empty_board):
-    """
-    Test case for checking stalemate where stalemate occurs due to repeated positions.
+    """Test case for checking stalemate where stalemate occurs due to repeated
+    positions.
 
     Visual representation of the initial chessboard setup:
     [' ', ' ', ' ', ' ', ' ', ' ', ' ', K-b]
@@ -340,8 +334,7 @@ def test_stalemate_repetition(game_with_empty_board):
 
 
 def test_stalemate_50move_rule(game_with_empty_board):
-    """
-    Test case for checking stalemate due to the 50-move rule in a chess game.
+    """Test case for checking stalemate due to the 50-move rule in a chess game.
 
     Visual representation of the initial chessboard setup:
     [' ', ' ', ' ', ' ', ' ', ' ', ' ', K-b]
@@ -360,8 +353,8 @@ def test_stalemate_50move_rule(game_with_empty_board):
     4. The game ends in a draw after reaching the 50-move rule.
 
     Note:
-    - The 50-move rule states that a player can claim a draw if no pawn has been moved and no piece has been
-      captured in the last 50 moves by each player.
+    - The 50-move rule states that a player can claim a draw if no pawn has been moved
+        and no piece has been captured in the last 50 moves by each player.
     """
 
     # setup initial chessboard
@@ -399,8 +392,8 @@ def test_stalemate_50move_rule(game_with_empty_board):
 
 
 def test_stalemate_no_legal_move(game_with_empty_board):
-    """
-    Test case for checking stalemate in a chess game when the player has no legal moves.
+    """Test case for checking stalemate in a chess game when the player has no legal
+    moves.
 
     Visual representation of the initial chessboard setup:
     [' ', ' ', ' ', ' ', ' ', ' ', ' ', K-b]
@@ -413,7 +406,7 @@ def test_stalemate_no_legal_move(game_with_empty_board):
     [K-w, ' ', ' ', ' ', ' ', ' ', Q-w, ' ']
 
     Note:
-    - Stalemate occurs when a player has no legal moves, and their king is not in check.
+    - Stalemate occurs when a player has no legal moves, and their king is not in check
     """
 
     # setup initial chessboard
@@ -432,8 +425,7 @@ def test_stalemate_no_legal_move(game_with_empty_board):
 
 
 def test_en_passant(game_with_empty_board):
-    """
-    Test case for validating the en passant rule in a chess game.
+    """Test case for validating the en passant rule in a chess game.
 
     Visual representation of the initial chessboard setup:
     [' ', ' ', ' ', ' ', ' ', ' ', ' ', K-b]
@@ -446,12 +438,15 @@ def test_en_passant(game_with_empty_board):
     [K-w, ' ', ' ', ' ', ' ', ' ', ' ', ' ']
 
     Scenarios:
-    1. En passant capture is not allowed because the opponent's last move was not a double square pawn move.
+    1. En passant capture is not allowed because the opponent's last move wasn't
+        a double square pawn move.
     2. An opponent's pawn captures en passant immediately after the double move.
 
     Note:
-    - The en passant rule allows a pawn to capture an opponent's pawn that has moved two squares forward from its starting position, as if it had only moved one square forward.
-    - En passant capture must be executed immediately after the double square pawn move.
+    - The en passant rule allows a pawn to capture an opponent's pawn that has moved
+        two squares forward from its starting position, as if it had only moved one
+        square forward.
+    - En passant capture must be executed immediately after the double square pawn move
     """
 
     # setup initial chessboard

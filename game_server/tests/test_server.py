@@ -60,7 +60,7 @@ async def test_main_with_draw_accepted():
 @pytest.mark.asyncio
 async def test_main_with_draw_declined_and_resigned():
     """
-    Test the main function behavior when a offered draw is declined and the game is resigned.
+    Test the main function behavior when a draw is declined and the game is resigned.
     """
     test_commands = [
         config.COMMAND_DRAW_OFFER,
@@ -115,7 +115,7 @@ async def test_main_with_incorrect_move():
     game.handle_move = Mock(side_effect=handle_ending_move)
     await server.main(websocket, game)
 
-    # Assert that an incorrect move results in the appropriate error message being sent.
+    # Assert that an incorrect move results in the appropriate error message being sent
     game.handle_move.assert_called_once_with("e2", "e4", websocket)
     websocket.send.assert_any_call(
         config.MESSAGE_INCORRECT_MOVE + "\n" + config.EMPTY_START_FIELD
@@ -173,7 +173,8 @@ async def test_create_game():
     ]
     games = await asyncio.gather(*game_creation_tasks)
 
-    # Verify both players join the same game instance and the game ID is registered in connected users.
+    # Verify both players join the same game instance
+    # and the game ID is registered in connected users.
     assert games[0] is games[1]
     assert game_id in server.connected_users
 
@@ -182,7 +183,7 @@ async def test_create_game():
     assert player_1_info["username"] == player_1["username"]
     assert player_2_info["username"] == player_2["username"]
 
-    # Confirm the initial message sent to player 1 contains correct opponent's username.
+    # Confirm the initial message sent to player 1 contains correct opponent's username
     first_call_player1 = websocket_player1.send.call_args_list[0][0]
     sent_data = json.loads(first_call_player1[0])
     assert sent_data["opponent_username"] == player_2["username"]
@@ -192,7 +193,8 @@ async def test_create_game():
 async def test_log_in_to_game_successful():
     """
     Test the login process to ensure a player can successfully log in to the game
-    with a valid game ID and username, and verify the server responds with correct messages.
+    with a valid game ID and username, and verify the server responds with correct
+    messages.
     """
     # Mock WebSocket to simulate player's login attempts.
     websocket_mock = AsyncMock()
@@ -233,7 +235,7 @@ async def test_log_in_to_game_successful():
 @pytest.mark.asyncio
 async def test_handler():
     """
-    Test the `handler` function to ensure it properly orchestrates the game session setup,
+    Test the `handler` function to ensure it properly handle the game session setup,
     including player login, game creation, and entering the main game loop.
     """
     server = ChessServer()
@@ -246,14 +248,16 @@ async def test_handler():
     create_game_patch = patch.object(server, "create_game", return_value=AsyncMock())
     main_patch = patch.object(server, "main", new_callable=AsyncMock)
 
-    # Apply patches using the `with` statement to ensure they're correctly applied and removed.
-    with login_patch as login_mock, create_game_patch as create_mock, main_patch as main_mock:
+    # Apply patches using the `with` statement
+    with login_patch as login_mock, \
+         create_game_patch as create_mock, \
+         main_patch as main_mock:
 
         websocket_mock = AsyncMock()
 
         await server.handler(websocket_mock)
 
-        # Verify all functions were called with correct parameters, orchestrating game setup and entry into main loop.
+        # Verify all functions were called with correct parameters.
         login_mock.assert_awaited_once_with(websocket_mock)
         create_mock.assert_awaited_once_with(websocket_mock, game_id, user)
         main_mock.assert_awaited_once_with(websocket_mock, create_mock.return_value)

@@ -2,7 +2,6 @@ import asyncio
 import json
 
 import config
-import requests
 import websockets
 from chess import Game
 from graph import get_challanges_from_app_server
@@ -14,8 +13,7 @@ class ChessServer:
         self.connected_users = {}
 
     async def send_to_opponent(self, websocket, game, message):
-        """
-        Send a message to the opponent player's websocket.
+        """Send a message to the opponent player's websocket.
 
         Args:
             websocket (WebSocketServerProtocol): Current player's websocket.
@@ -27,9 +25,8 @@ class ChessServer:
                 await user["websocket"].send(message)
 
     async def log_in_to_game(self, websocket):
-        """
-        Handle the initial authentication and login process for the user
-        joining the game. Check if provided game id and username are correct
+        """Handle the initial authentication and login process for the user joining the
+        game. Check if provided game id and username are correct.
 
         Args:
             websocket (WebSocketServerProtocol): The WebSocket connection for the user.
@@ -39,7 +36,8 @@ class ChessServer:
         """
         while True:
             try:
-                # Receive game id from the client's WebSocket connection and send query to app server by using it
+                # Receive game id from the client's WebSocket connection
+                # and send query to app server by using it
                 game_id = await websocket.recv()
                 json_data = get_challanges_from_app_server(game_id)
 
@@ -48,7 +46,7 @@ class ChessServer:
                     raise Exception("Game with this id doesn't exists")
                 await websocket.send(config.MESSAGE_CORRECT_ID)
 
-                # Receive username from the client's WebSocket connection and check if matches
+                # Check if received username matches with json data
                 username = await websocket.recv()
                 if (
                     json_data["data"]["challange"]["fromUser"]["username"] != username
@@ -78,8 +76,7 @@ class ChessServer:
         return game_id, user
 
     async def create_game(self, websocket, game_id, user):
-        """
-        Create a new game instance or assign the player to an existing game.
+        """Create a new game instance or assign the player to an existing game.
 
         This function creates a new game instance or assigns the player to an existing
         game based on the game ID.
@@ -102,7 +99,7 @@ class ChessServer:
             game = game
 
         # Add information about current user to server data
-        if not game.id in self.connected_users:
+        if game.id not in self.connected_users:
             self.connected_users[game.id] = [user]
         else:
             self.connected_users[game.id].append(user)
@@ -137,16 +134,16 @@ class ChessServer:
         return game
 
     async def main(self, websocket, game):
-        """
-        This function handles the main game loop for processing player moves and updating
-        the game state accordingly.
+        """This function handles the main game loop for processing player moves and
+        updating the game state accordingly.
 
         Args:
             websocket (WebSocketServerProtocol): The WebSocket connection for the user.
             game(Game): The instance of the game.
         """
 
-        # Loop to receive commands from the client's WebSocket connection and send response message to them
+        # Loop to receive commands from the client's WebSocket connection
+        # and send response message to them
         async for message in websocket:
             if message == config.COMMAND_DRAW_OFFER:
                 await self.send_to_opponent(websocket, game, config.MESSAGE_DRAW_OFFER)
@@ -183,7 +180,8 @@ class ChessServer:
                     start_field, end_field = (message).split(":")
                     game.handle_move(start_field, end_field, websocket)
 
-                    # If game is not over send message about last move and notify players about the correct move.
+                    # If game is not over send message about last move and notify
+                    # players about the correct move.
                     if not game.is_over:
                         await self.send_to_opponent(
                             websocket, game, config.MESSAGE_CORRECT_MOVE
@@ -198,7 +196,7 @@ class ChessServer:
                         )
                         await websocket.send(config.MESSAGE_END_GAME)
 
-                # If provided chess move is inccorect send error to client and repeat loop
+                # If provided move is inccorect send error to client and repeat loop
                 except Exception as error:
                     await websocket.send(
                         config.MESSAGE_INCORRECT_MOVE + "\n" + str(error)
@@ -223,23 +221,22 @@ class ChessServer:
                 return
 
     async def handler(self, websocket):
-        """
-        Function is responsible for handling the WebSocket connection for each client.
+        """Function is responsible for handling the WebSocket connection for each
+        client.
 
-        It calls the `log_in_to_game` and `create_game` functions to authenticate the user and
-        set up the game environment. Then, it enters the `main` loop to handle messages and
-        game actions until the game is over.
+        It calls the `log_in_to_game` and `create_game` functions to authenticate user
+        and set up the game environment. Then, it enters the `main` loop to handle
+        messages and game actions until the game is over.
 
         Args:
-            websocket (WebSocketServerProtocol): The WebSocket connection object for the client.
+            websocket (WebSocketServerProtocol): The client WebSocket connection object
         """
         game_id, username = await self.log_in_to_game(websocket)
         game = await self.create_game(websocket, game_id, username)
         await self.main(websocket, game)
 
     async def start_server(self):
-        """
-        Start the WebSocket server.
+        """Start the WebSocket server.
 
         The server runs indefinitely and handles multiple connections simultaneously.
         """
