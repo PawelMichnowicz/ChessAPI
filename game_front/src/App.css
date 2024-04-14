@@ -1,0 +1,24 @@
+.chessboard {
+  display: flex;
+  flex-direction: column;
+  width: 400px;
+  height: 400px;
+  margin: 20px auto;
+}
+
+.row {
+  display: flex;
+}
+
+.square {
+  flex: 1;
+  height: 50px; 
+}
+
+.light {
+  background-color: #f0d9b5;
+}
+
+.dark {
+  background-color: #b58863;
+}

@@ -433,7 +433,7 @@ class Board:
 
     def __init__(self):
         """Initializes a new Board object."""
-        self.EMPTY = " "
+        self.EMPTY = None
         self.gameboard = [8 * [self.EMPTY] for _ in range(8)]
         self.all_pieces = {Color.BLACK: set(), Color.WHITE: set()}
         self.generate_pieces_on_board()
@@ -877,11 +877,14 @@ class Game:
         Returns:
             str: String representation of the chessboard.
         """
-        board_string = ""
-        direct = 1
+        # board = self.board.gameboard
+        # print(1)
+
+        board_strings = [
+            [str(piece) if piece else None for piece in row]
+            for row in self.board.gameboard]
+
         if self.player_1.websocket == websocket:
-            direct = -1
-        for line in self.board.gameboard[::direct]:
-            board_string += str(line[:: direct * (-1)])
-            board_string += "\n"
-        return board_string
+            return board_strings[::-1]
+        else:
+            return [row[::-1] for row in board_strings]

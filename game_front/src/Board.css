@@ -1,0 +1,33 @@
+.chessboard {
+    height: 400px;
+    width: 400px;
+    display: flex;
+    flex-direction: column;
+    margin: 20px auto;
+  }
+  
+  .row {
+    display: flex;
+  }
+  
+  .square {
+    width: 50px; 
+    height: 50px; 
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .chess-piece {
+    max-width: 100%;
+    max-height: 100%;
+  }
+
+  .light {
+    background-color: #f0d9b5;
+  }
+  
+  .dark {
+    background-color: #b58863;
+  }
+  
