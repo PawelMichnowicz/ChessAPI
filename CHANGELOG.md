@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [2.0.1] - 2024-04-14
+### Changed
+- Updated tests to align with version 2.0.0 changes.
+- Cleaned up the codebase and improved documentation and in-line comments
+
 ## [2.0.0] - 2024-04-14
 ### Added
 - Frontend layer to handle user interactions through a web interface.
