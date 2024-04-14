@@ -44,7 +44,6 @@ class ChessServer:
                 # Receive game id from the client's WebSocket connection
                 # and send query to app server by using it
                 game_id = await websocket.recv()
-                print(game_id)  # 1
                 json_data = get_challanges_from_app_server(game_id)
 
                 # Check if challange exists
@@ -107,14 +106,12 @@ class ChessServer:
         # Add information about current user to server data
         if game.id not in self.connected_users:
             self.connected_users[game.id] = [user]
+            # Notify user that the server is waiting for an opponent to join the game.
             await websocket.send(json.dumps({"type": "waiting_for_opponent"}))
+            while len(self.connected_users[game.id]) < 2:
+                await asyncio.sleep(0.5)
         else:
             self.connected_users[game.id].append(user)
-
-        # Wait for second player
-        while len(self.connected_users[game.id]) < 2:
-            print("Waiting for second player")
-            await asyncio.sleep(0.5)
 
         # Assign websockets to the game
         player_1, player_2 = (
@@ -136,9 +133,6 @@ class ChessServer:
 
         user_info_json = json.dumps({"type": "game_info", "data": user_info})
         await websocket.send(user_info_json)
-
-        # Send initial board to clients
-        # await websocket.send(game.get_chessboard(websocket))
 
         return game
 
@@ -169,12 +163,10 @@ class ChessServer:
                 ),
             }
         )
-        await self.send_to_opponent(
-            websocket, game, json_message_opponent
-        )
+        await self.send_to_opponent(websocket, game, json_message_opponent)
 
         async for message in websocket:
-            print(message)
+
             data = json.loads(message)
             if data["type"] == "move":
                 await websocket.send(json.dumps({"type": "move_confirmed"}))
@@ -182,13 +174,8 @@ class ChessServer:
                     start_field, end_field = data["from"], data["to"]
                     game.handle_move(start_field, end_field, websocket)
 
-                    # If game is not over send message about last move and notify
-                    # players about the correct move.
+                    # If game is not over send messages containing current game state
                     if not game.is_over:
-                        # await self.send_to_opponent(
-                        #     websocket, game, config.MESSAGE_CORRECT_MOVE
-                        # )
-                        # await self.send_to_opponent(websocket, game, message)
                         json_message = json.dumps(
                             {
                                 "type": "game_state",
@@ -217,19 +204,8 @@ class ChessServer:
 
                 # If provided move is inccorect send error to client and repeat loop
                 except Exception as error:
-                    # await websocket.send(
-                    #     config.MESSAGE_INCORRECT_MOVE + "\n" + str(error)
-                    # )
                     print(str(error))
                     continue
-
-            # Sending board
-            # print(game.get_chessboard(websocket))
-            # for user in self.connected_users[game.id]:
-            #     if user["websocket"] != websocket:
-            #         opponent_chessboard = game.get_chessboard(user["websocket"])
-            # await self.send_to_opponent(websocket, game, opponent_chessboard)
-            # await websocket.send(game.get_chessboard(websocket))
 
             # If game is over send result description and winner username to players
             if game.is_over:
@@ -252,13 +228,10 @@ class ChessServer:
         Args:
             websocket (WebSocketServerProtocol): The client WebSocket connection object
         """
-        # game_id, username = await self.log_in_to_game(websocket)
         message = await websocket.recv()
-        data = json.loads(message)  # Załaduj wiadomość jako obiekt JSON
-        print(data)
+        data = json.loads(message)
         game_id = data["gameId"]
         username = data["username"]
-
         user = {
             "username": username,
             "elo_rating": 0,
@@ -266,12 +239,11 @@ class ChessServer:
             "websocket": websocket,
         }
 
-        # Możesz teraz użyć game_id i username, np. do logowania lub bezpośrednio do stworzenia gry
-        print(f"Otrzymano game_id: {game_id} i username: {username}")
+        # Send a confirmation message back to the client acknowledging successful login
         await websocket.send(json.dumps({"type": "login_success"}))
 
+        # Create a new game environment with the logged-in user and start the game loop
         game = await self.create_game(websocket, game_id, user)
-        print("Stworzono gre")
         await self.main(websocket, game)
 
     async def start_server(self):

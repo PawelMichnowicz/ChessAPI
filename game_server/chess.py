@@ -875,14 +875,13 @@ class Game:
             websocket (WebSocketServerProtocol): The WebSocket connection of the player.
 
         Returns:
-            str: String representation of the chessboard.
+            str: Object representation of the chessboard.
         """
-        # board = self.board.gameboard
-        # print(1)
 
         board_strings = [
             [str(piece) if piece else None for piece in row]
-            for row in self.board.gameboard]
+            for row in self.board.gameboard
+        ]
 
         if self.player_1.websocket == websocket:
             return board_strings[::-1]
