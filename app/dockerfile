@@ -2,5 +2,4 @@ FROM python:3.10.2-slim
 RUN mkdir /code
 WORKDIR /code
 COPY requirements.txt ./
-COPY app/ .
 RUN pip install --no-cache-dir --upgrade -r requirements.txt
