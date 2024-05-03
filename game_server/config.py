@@ -29,6 +29,7 @@ MESSAGE_CORRECT_MOVE = "move_ok"
 # illegal move or action description
 EMPTY_START_FIELD = "That is empty field!"
 NOT_YOUR_PIECE = "It is not your piece!"
+NOT_YOUR_TURN = "It is not your turn!"
 ILLEGAL_MOVE = "Invalid move! Possibilities of this piece: {}"
 ILLEGAL_MOVE_CHECK_WARNING = "Illegal move due to attack on your king"
 INVALID_PARTICIPANT = "You are not a participant of game"

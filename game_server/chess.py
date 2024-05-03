@@ -768,6 +768,7 @@ class Game:
         player_2 (Player): The second player participating in the game.
         winner (Player): The player who has won the game, None if the game is
             ongoing or drawn.
+        current_turn_color (Color): The color of the player making the move
         is_over (bool): True if the game has ended, False otherwise.
         result_description (str): Description of the game result.
         id (int): The unique identifier of the game.
@@ -779,6 +780,7 @@ class Game:
         self.board = Board()
         self.player_1 = None
         self.player_2 = None
+        self.current_turn_color = Color.WHITE
         self.winner = None
         self.is_over = False
         self.result_description = ""
@@ -834,9 +836,18 @@ class Game:
         else:
             raise Exception(config.INVALID_PARTICIPANT)
 
+        # Check if the move is provided by correct player
+        if current_player.color != self.current_turn_color:
+            print('xDD')
+            raise Exception(config.NOT_YOUR_TURN)
+
         # Check if the move is legal and update the game board accordingly
         self.board.check_if_legal_move(start_field, end_field, current_player)
         self.board.make_move(start_field, end_field)
+
+        # Switch the turn of the player making move
+        self.current_turn_color = opposite_color(self.current_turn_color)
+
         # Check if the move results in checkmate
         if self.board.check_if_checkmate(current_player):
             result_description = f"Check-Mate! {current_player.username} won!"
@@ -877,7 +888,6 @@ class Game:
         Returns:
             str: Object representation of the chessboard.
         """
-
         board_strings = [
             [str(piece) if piece else None for piece in row]
             for row in self.board.gameboard
