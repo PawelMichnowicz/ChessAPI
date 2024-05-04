@@ -425,7 +425,7 @@ class EmptySquare:
     def __bool__(self) -> bool:
         return False
 
-    def __repr__(self) -> str:
+    def __repr__(self):
         return "None"
 
     def __str__(self) -> str:
@@ -554,8 +554,8 @@ class Board:
             bool: True if the position is empty, False otherwise.
         """
         if isinstance(position, str):
-            return self[position] == self.EMPTY
-        return self.gameboard[position[1]][position[0]] == self.EMPTY
+            return isinstance(self[position], EmptySquare)
+        return isinstance(self.gameboard[position[1]][position[0]], EmptySquare)
 
     def is_in(self, position):
         """Check if a given position is within the board's boundaries.
@@ -640,7 +640,7 @@ class Board:
 
         # If there is a piece at the ending field, remove it from the board
         if isinstance(target, Piece):
-            target.position = None
+            target.position = self.EMPTY
             board.all_pieces[target.color].discard(target)
             if not simulate_board:
                 # Reset the fifty-move counter if it is a capturing move
