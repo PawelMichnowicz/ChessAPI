@@ -425,7 +425,7 @@ class EmptySquare:
     def __bool__(self) -> bool:
         return False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return "None"
 
     def __str__(self) -> str:

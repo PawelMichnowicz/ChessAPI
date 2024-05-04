@@ -1,7 +1,7 @@
-import pytest
 from unittest.mock import patch
 
 import config
+import pytest
 from chess import Bishop, Board, Color, Game, King, Knight, Pawn, Player, Queen, Rook
 
 
@@ -83,19 +83,22 @@ def test_valid_castling(game):
     1. Castling on the queen side for the white player.
     2. Castling on the king side for the black player.
     """
-    # test castling on the queen side (white color)
+    # test castling on the queen side (white color) and on the king side (black color)
     game.handle_move("b1", "a3", "websocket_white")
-    game.handle_move("d2", "d4", "websocket_white")
-    game.handle_move("c1", "e3", "websocket_white")
-    game.handle_move("d1", "d3", "websocket_white")
-    game.handle_move("e1", "c1", "websocket_white")
-    assert vars(game.board["d1"]) == vars(Rook(Color.WHITE, (3, 0), "d1"))
-
-    # test castling on the king side (black color)
     game.handle_move("g8", "h6", "websocket_black")
+
+    game.handle_move("d2", "d4", "websocket_white")
     game.handle_move("e7", "e6", "websocket_black")
+
+    game.handle_move("c1", "e3", "websocket_white")
     game.handle_move("f8", "e7", "websocket_black")
+
+    game.handle_move("d1", "d3", "websocket_white")
     game.handle_move("e8", "g8", "websocket_black")
+
+    game.handle_move("e1", "c1", "websocket_white")
+
+    assert vars(game.board["d1"]) == vars(Rook(Color.WHITE, (3, 0), "d1"))
     assert vars(game.board["f8"]) == vars(Rook(Color.BLACK, (5, 7), "f8"))
 
 
@@ -112,23 +115,31 @@ def test_invalid_castling(game):
         game.handle_move("e8", "g8", "websocket_black")
     assert str(exc_info.value).startswith(config.ILLEGAL_MOVE[:-3])
 
-    # Invalid becouse king or rook already moved, checked king's side
+    # Prepare pieces on chessboard to castling
     game.handle_move("g1", "h3", "websocket_white")
+    game.handle_move("b8", "a6", "websocket_black")
+
     game.handle_move("e2", "e4", "websocket_white")
+    game.handle_move("d7", "d5", "websocket_black")
+
     game.handle_move("f1", "e2", "websocket_white")
+    game.handle_move("c8", "e6", "websocket_black")
+
     game.handle_move("h1", "g1", "websocket_white")
+    game.handle_move("d8", "d6", "websocket_black")
+
     game.handle_move("g1", "h1", "websocket_white")
+    game.handle_move("e8", "d8", "websocket_black")
+
+    # Invalid because king or rook already moved, checked king's side
     with pytest.raises(Exception) as exc_info:
         game.handle_move("e1", "g1", "websocket_white")
     assert str(exc_info.value).startswith(config.ILLEGAL_MOVE[:-3])
 
-    # Invalid becouse king or rook already moved, checked queen's side
-    game.handle_move("b8", "a6", "websocket_black")
-    game.handle_move("d7", "d5", "websocket_black")
-    game.handle_move("c8", "e6", "websocket_black")
-    game.handle_move("d8", "d6", "websocket_black")
-    game.handle_move("e8", "d8", "websocket_black")
+    # Invalid because king or rook already moved, checked queen's side
+    game.current_turn_color = Color.BLACK
     game.handle_move("d8", "e8", "websocket_black")
+    game.current_turn_color = Color.BLACK
     with pytest.raises(Exception) as exc_info:
         game.handle_move("e8", "c8", "websocket_black")
     assert str(exc_info.value).startswith(config.ILLEGAL_MOVE[:-3])
@@ -215,13 +226,14 @@ def test_illegal_moves(game_with_empty_board):
     game.board["h8"].last_move = 1
     put_piece_on_board(game.board, King, Color.WHITE, "a1")
     game.board["a1"].last_move = 1
-    put_piece_on_board(game.board, Queen, Color.BLACK, "d1")
-    put_piece_on_board(game.board, Bishop, Color.WHITE, "c1")
+    put_piece_on_board(game.board, Queen, Color.BLACK, "h1")
+    put_piece_on_board(game.board, Bishop, Color.WHITE, "g1")
 
     with patch("chess.send_result_to_app_server", return_value=None):
         # Expected error due to attack on white king
         with pytest.raises(Exception) as exc_info:
-            game.handle_move("c1", "d2", "websocket_white")
+            game.handle_move("g1", "h2", "websocket_white")
+
         assert str(exc_info.value) == config.ILLEGAL_MOVE_CHECK_WARNING
 
         # Expected error because started field is empty
@@ -231,6 +243,7 @@ def test_illegal_moves(game_with_empty_board):
 
         # Expected error because the figure does not belong to the player
         with pytest.raises(Exception) as exc_info:
+            game.current_turn_color = Color.BLACK
             game.handle_move("a1", "d2", "websocket_black")
         assert str(exc_info.value) == config.NOT_YOUR_PIECE
 
@@ -278,6 +291,7 @@ def test_checkmate(start_field, end_field, game_with_empty_board):
     put_piece_on_board(game.board, Knight, Color.BLACK, "a3")
 
     # Mock the send_result_to_app_server function
+    game.current_turn_color = Color.BLACK
     with patch("chess.send_result_to_app_server", return_value=None):
         game.handle_move(start_field, end_field, "websocket_black")
     assert game.is_over
@@ -372,20 +386,24 @@ def test_stalemate_50move_rule(game_with_empty_board):
     # Mock the send_result_to_app_server function
     with patch("chess.send_result_to_app_server", return_value=None):
         game.board.fifty_move_count = 40
+        game.current_turn_color = Color.BLACK
         game.handle_move("a3", "b3", "websocket_black")
         assert game.board.fifty_move_count == 41
 
         # reset move counting to zero because pawn's move
+        game.current_turn_color = Color.BLACK
         game.handle_move("d4", "d3", "websocket_black")
         assert game.board.fifty_move_count == 1
 
         # reset move counting to zero because of captured piece
+        game.current_turn_color = Color.WHITE
         game.handle_move("d2", "d3", "websocket_white")
         assert game.board.fifty_move_count == 1
 
         # end game with draw because of 50 move rule
         game.board.fifty_move_count = 49
         assert not game.is_over
+        game.current_turn_color = Color.WHITE
         game.handle_move("d3", "d4", "websocket_white")
         assert game.is_over
         assert not game.winner
@@ -463,14 +481,17 @@ def test_en_passant(game_with_empty_board):
     put_piece_on_board(game.board, Pawn, Color.BLACK, "d5")
 
     with patch("chess.send_result_to_app_server", return_value=None):
+        game.current_turn_color = Color.BLACK
         game.handle_move("b7", "b5", "websocket_black")
 
         # Expected error becouse pawn from c5 wasn't opponent's last move
         with pytest.raises(Exception) as exc_info:
+            game.current_turn_color = Color.BLACK
             game.handle_move("d5", "c4", "websocket_black")
         assert str(exc_info.value).startswith(config.ILLEGAL_MOVE[:-3])
 
         num_of_black_pieces = len(game.board.all_pieces[Color.BLACK])
+        game.current_turn_color = Color.WHITE
         game.handle_move("c5", "b6", "websocket_white")
 
     assert game.board["b5"] == game.board.EMPTY
