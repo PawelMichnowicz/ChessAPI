@@ -1,11 +1,14 @@
 import React from 'react';
-import Game from './Game';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import './App.css';
+import Game from './Game';
 
 function App() {
   return (
     <div className="App">
       <Game />
+      <ToastContainer />
     </div>
   );
 }

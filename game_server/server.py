@@ -204,7 +204,13 @@ class ChessServer:
 
                 # If provided move is inccorect send error to client and repeat loop
                 except Exception as error:
-                    print(str(error))
+                    json_message = json.dumps(
+                            {
+                                "type": "error",
+                                "content": str(error),
+                            }
+                        )
+                    await websocket.send(json_message)
                     continue
 
             # If game is over send result description and winner username to players

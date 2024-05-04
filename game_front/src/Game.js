@@ -1,12 +1,13 @@
 // Game.js
 import React, { useState, useEffect } from 'react';
+import { toast } from 'react-toastify';
 import Login from './Login';
 import Board from './Board';
 
 function Game() {
   const [ws, setWs] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [gameState, setGameState] = useState([]); // Zaktualizowano, aby początkowy stan był pustą listą
+  const [gameState, setGameState] = useState([]); 
   const [gameInfo, setGameInfo] = useState(null);
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
 
@@ -25,9 +26,11 @@ function Game() {
         setWaitingForOpponent(true);
       } else if (message.type === 'login_success') {
         setIsLoggedIn(true);
-        setWaitingForOpponent(false); // Możliwe, że będziesz chciał to zaktualizować w zależności od logiki aplikacji
+        setWaitingForOpponent(false); 
       } else if (message.type === "game_info") {
         setGameInfo(message.data);
+      } else if (message.type === "error"){
+        toast.error(message.content);
       }
     };
 
