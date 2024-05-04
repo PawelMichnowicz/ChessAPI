@@ -30,4 +30,7 @@
   .dark {
     background-color: #b58863;
   }
-  
+
+  .light.selected, .dark.selected {
+    background-color: rgb(1, 172, 58); 
+  }
