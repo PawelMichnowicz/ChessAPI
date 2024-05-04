@@ -416,6 +416,22 @@ class King(Piece):
         return possible_moves
 
 
+class EmptySquare:
+    """Represents a empty place in the chess game."""
+
+    def __init__(self):
+        self.color = None
+
+    def __bool__(self) -> bool:
+        return False
+
+    def __repr__(self) -> str:
+        return "None"
+
+    def __str__(self) -> str:
+        return "None"
+
+
 class Board:
     """Represents a chessboard in the chess game.
 
@@ -433,7 +449,7 @@ class Board:
 
     def __init__(self):
         """Initializes a new Board object."""
-        self.EMPTY = None
+        self.EMPTY = EmptySquare()
         self.gameboard = [8 * [self.EMPTY] for _ in range(8)]
         self.all_pieces = {Color.BLACK: set(), Color.WHITE: set()}
         self.generate_pieces_on_board()
@@ -631,7 +647,11 @@ class Board:
                 self.fifty_move_count = 0
 
         # Check if en passant was made and involved it
-        if isinstance(piece, Pawn) and start_field[0] != end_field[0]:
+        if (
+            isinstance(piece, Pawn)
+            and isinstance(target, EmptySquare)
+            and start_field[0] != end_field[0]
+        ):
             direct = piece.pawn_steps[piece.color]
             captured_pawn_position = end_field[0] + str(int(end_field[1]) - direct)
             captured_pawn = board[captured_pawn_position]
@@ -838,7 +858,6 @@ class Game:
 
         # Check if the move is provided by correct player
         if current_player.color != self.current_turn_color:
-            print('xDD')
             raise Exception(config.NOT_YOUR_TURN)
 
         # Check if the move is legal and update the game board accordingly
