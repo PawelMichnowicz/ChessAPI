@@ -757,9 +757,9 @@ class Board:
         if self.is_no_legal_move(on_color=opposite_color(current_player.color)):
             return "Stalemate! No legal move"
         elif self.record_of_gameboard["three_rep"]:
-            return "Stalemate! 3-fold repetition"
+            return "Draw! by the 3-fold repetition"
         elif self.fifty_move_count >= 50:
-            return "Stalemate! 50-move rule"
+            return "Draw! by the 50-move rule"
 
 
 class Player:

@@ -167,11 +167,11 @@ class ChessServer:
 
         async for message in websocket:
 
-            data = json.loads(message)
-            if data["type"] == "move":
+            message = json.loads(message)
+            if message["type"] == "move":
                 await websocket.send(json.dumps({"type": "move_confirmed"}))
                 try:
-                    start_field, end_field = data["from"], data["to"]
+                    start_field, end_field = message["from"], message["to"]
                     game.handle_move(start_field, end_field, websocket)
 
                     # If game is not over send messages containing current game state
@@ -205,13 +205,39 @@ class ChessServer:
                 # If provided move is inccorect send error to client and repeat loop
                 except Exception as error:
                     json_message = json.dumps(
+<<<<<<< HEAD
+                        {
+                            "type": "error",
+                            "content": str(error),
+                        }
+                    )
+=======
                             {
                                 "type": "error",
                                 "content": str(error),
                             }
                         )
+>>>>>>> 270c5024d976dcd63a769b12e706e2c369b7c50f
                     await websocket.send(json_message)
                     continue
+
+            elif message["type"] == "offer_draw":
+                await self.send_to_opponent(
+                    websocket, game, json.dumps({"type": "draw_offer_received"})
+                )
+
+            elif message["type"] == "accept_draw":
+                # Notify both players that the draw has been accepted
+                accept_draw_message = json.dumps({"type": "draw_accepted"})
+                await websocket.send(accept_draw_message)
+                await self.send_to_opponent(websocket, game, accept_draw_message)
+                game.end_with_draw("Draw! The players have agreed by mutual consent.")
+
+            elif message["type"] == "reject_draw":
+                # Notify the opponent that the draw offer has been rejected
+                await self.send_to_opponent(
+                    websocket, game, json.dumps({"type": "draw_rejected"})
+                )
 
             # If game is over send result description and winner username to players
             if game.is_over:

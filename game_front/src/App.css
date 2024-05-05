@@ -22,3 +22,26 @@
 .dark {
   background-color: #b58863;
 }
+
+
+.button {
+  padding: 10px 20px;
+  font-size: 16px;
+  text-transform: uppercase;
+  border: none;
+  border-radius: 5px;
+  background-color: #4CAF50;
+  color: white;
+  cursor: pointer;
+  outline: none;
+}
+
+.button:hover {
+  background-color: #45a049;
+}
+
+.button:disabled {
+  background-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}

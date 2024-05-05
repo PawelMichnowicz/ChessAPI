@@ -1,41 +1,59 @@
 // Game.js
-import React, { useState, useEffect } from 'react';
-import { toast } from 'react-toastify';
-import Login from './Login';
-import Board from './Board';
+import React, { useState, useEffect } from "react";
+import { toast } from "react-toastify";
+import Modal from "react-modal";
+import Login from "./Login";
+import Board from "./Board";
 
 function Game() {
   const [ws, setWs] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [gameState, setGameState] = useState([]); 
+  const [gameState, setGameState] = useState([]);
   const [gameInfo, setGameInfo] = useState(null);
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
+  const [modalIsOpen, setModalIsOpen] = useState(false);
+  const [drawOffered, setDrawOffered] = useState(false);
 
   useEffect(() => {
-    const websocket = new WebSocket('ws://localhost:5050');
+    const websocket = new WebSocket("ws://localhost:5050");
 
     websocket.onopen = () => {
-      console.log('Connected to the server');
+      console.log("Connected to the server");
     };
 
     websocket.onmessage = (event) => {
       const message = JSON.parse(event.data);
-      if (message.type === "game_state") {
-        setGameState(message.state);
-      } else if (message.type === "waiting_for_opponent") {
-        setWaitingForOpponent(true);
-      } else if (message.type === 'login_success') {
-        setIsLoggedIn(true);
-        setWaitingForOpponent(false); 
-      } else if (message.type === "game_info") {
-        setGameInfo(message.data);
-      } else if (message.type === "error"){
-        toast.error(message.content);
+      switch (message.type) {
+        case "game_state":
+          setGameState(message.state);
+          handleValidMove();
+          break;
+        case "waiting_for_opponent":
+          setWaitingForOpponent(true);
+          break;
+        case "login_success":
+          setIsLoggedIn(true);
+          setWaitingForOpponent(false);
+          break;
+        case "game_info":
+          setGameInfo(message.data);
+          break;
+        case "error":
+          toast.error(message.content);
+          break;
+        case "draw_offer_received":
+          setModalIsOpen(true);
+          break;
+        case "draw_rejected":
+          toast.info("Draw rejected.");
+          break;
+        default:
+          console.log("Unhandled message type:", message.type);
       }
     };
 
-    websocket.onclose = () => console.log('Disconnected from the server');
-    websocket.onerror = (error) => console.error('Connection error:', error);
+    websocket.onclose = () => console.log("Disconnected from the server");
+    websocket.onerror = (error) => console.error("Connection error:", error);
 
     setWs(websocket);
 
@@ -46,13 +64,42 @@ function Game() {
 
   const handleLogin = (gameId, username) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'login', gameId, username }));
+      ws.send(JSON.stringify({ type: "login", gameId, username }));
     }
   };
 
   const handleMove = (from, to) => {
     if (ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(JSON.stringify({ type: 'move', from, to }));
+      ws.send(JSON.stringify({ type: "move", from, to }));
+    }
+  };
+
+  const handleValidMove = () => {
+    setDrawOffered(false);
+    if (modalIsOpen) {
+      setModalIsOpen(false);
+      ws.send(JSON.stringify({ type: "reject_draw" }));
+    }
+  };
+
+  const handleDrawOffer = () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "offer_draw" }));
+      setDrawOffered(true);
+    }
+  };
+
+  const acceptDraw = () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "accept_draw" }));
+      setModalIsOpen(false);
+    }
+  };
+
+  const rejectDraw = () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "reject_draw" }));
+      setModalIsOpen(false);
     }
   };
 
@@ -65,11 +112,35 @@ function Game() {
           {waitingForOpponent ? <p>Waiting for the opponent...</p> : null}
           {gameInfo ? (
             <div>
-              <p>Player: {gameInfo.username} [{gameInfo.is_white ? "White" : "Black"}]</p>
+              <p>
+                Player: {gameInfo.username} [
+                {gameInfo.is_white ? "White" : "Black"}]
+              </p>
               <p>Opponent: {gameInfo.opponent_username}</p>
-              <Board gameState={gameState} onMove={handleMove} isWhite={gameInfo.is_white} />
+              <Board
+                gameState={gameState}
+                onMove={handleMove}
+                isWhite={gameInfo.is_white}
+              />
+              <button
+                className="button"
+                onClick={handleDrawOffer}
+                disabled={drawOffered}
+              >
+                Offer Draw
+              </button>
             </div>
           ) : null}
+          <Modal
+            isOpen={modalIsOpen}
+            onRequestClose={() => setModalIsOpen(false)}
+            contentLabel="Draw Offer"
+            ariaHideApp={false}
+          >
+            <h2>Draw Offer</h2>
+            <button onClick={acceptDraw}>Accept</button>
+            <button onClick={rejectDraw}>Reject</button>
+          </Modal>
         </>
       )}
     </div>
