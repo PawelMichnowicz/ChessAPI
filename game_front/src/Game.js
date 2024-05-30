@@ -1,9 +1,10 @@
 // Game.js
-import React, { useState, useEffect } from "react";
-import { toast } from "react-toastify";
+import React, { useEffect, useState } from "react";
 import Modal from "react-modal";
-import Login from "./Login";
+import { toast } from "react-toastify";
 import Board from "./Board";
+import Login from "./Login";
+import WaitingForOpponent from './WaitingForOpponent';
 
 function Game() {
   const [ws, setWs] = useState(null);
@@ -33,6 +34,9 @@ function Game() {
           break;
         case "login_success":
           setIsLoggedIn(true);
+          setWaitingForOpponent(false);
+          break;
+        case "opp_login_success":
           setWaitingForOpponent(false);
           break;
         case "game_info":
@@ -109,13 +113,27 @@ function Game() {
     }
   };
 
+  const handlePing = () => {
+    console.log('Ping opponent button clicked');
+  };
+
+  const handleCancel = () => {
+    console.log('Cancel button clicked');
+  };
+
   return (
     <div>
       {!isLoggedIn ? (
         <Login onLogin={handleLogin} />
       ) : (
         <>
-          {waitingForOpponent ? <p>Waiting for the opponent...</p> : null}
+          {waitingForOpponent && (
+            <WaitingForOpponent
+              open={waitingForOpponent}
+              onPing={handlePing}
+              onCancel={handleCancel}
+            />
+          )}
           {gameInfo ? (
             <div>
               <p>

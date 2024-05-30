@@ -141,9 +141,9 @@ async def test_create_game():
     assert player_1_info["username"] == player_1["username"]
     assert player_2_info["username"] == player_2["username"]
 
-    # Confirm the initial message sent to player 1 contains correct opponent's username
-    first_call_player1 = websocket_player1.send.call_args_list[1][0]
-    sent_data = json.loads(first_call_player1[0])
+    # Confirm the message sent to player 1 contains correct opponent's username
+    call_with_game_info = websocket_player1.send.call_args_list[2][0]
+    sent_data = json.loads(call_with_game_info[0])
     assert sent_data["data"]["opponent_username"] == player_2["username"]
 
 

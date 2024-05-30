@@ -111,6 +111,8 @@ class ChessServer:
             while len(self.connected_users[game.id]) < 2:
                 await asyncio.sleep(0.5)
         else:
+            opponent = self.connected_users[game.id][0]
+            await opponent["websocket"].send(json.dumps({"type": "opp_login_success"}))
             self.connected_users[game.id].append(user)
 
         # Assign websockets to the game
