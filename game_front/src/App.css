@@ -45,3 +45,7 @@
   color: #666;
   cursor: not-allowed;
 }
+
+.resign-button {
+  background-color: red;
+}

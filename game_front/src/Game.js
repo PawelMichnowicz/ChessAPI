@@ -103,6 +103,12 @@ function Game() {
     }
   };
 
+  const handleResign = () => {
+    if (ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "resign" }));
+    }
+  };
+
   return (
     <div>
       {!isLoggedIn ? (
@@ -128,6 +134,9 @@ function Game() {
                 disabled={drawOffered}
               >
                 Offer Draw
+              </button>
+              <button className="button resign-button" onClick={handleResign}>
+                Resign
               </button>
             </div>
           ) : null}

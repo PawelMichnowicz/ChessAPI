@@ -205,19 +205,11 @@ class ChessServer:
                 # If provided move is inccorect send error to client and repeat loop
                 except Exception as error:
                     json_message = json.dumps(
-<<<<<<< HEAD
                         {
                             "type": "error",
                             "content": str(error),
                         }
                     )
-=======
-                            {
-                                "type": "error",
-                                "content": str(error),
-                            }
-                        )
->>>>>>> 270c5024d976dcd63a769b12e706e2c369b7c50f
                     await websocket.send(json_message)
                     continue
 
@@ -239,9 +231,25 @@ class ChessServer:
                     websocket, game, json.dumps({"type": "draw_rejected"})
                 )
 
+            elif message["type"] == "resign":
+
+                # Notify both players that the game has been resigned
+                accept_draw_message = json.dumps({"type": "game_resigned"})
+                await websocket.send(accept_draw_message)
+                await self.send_to_opponent(websocket, game, accept_draw_message)
+
+                winner, loser = (
+                    (game.player_2, game.player_1)
+                    if websocket == game.player_1.websocket
+                    else (game.player_1, game.player_2)
+                )
+                result_description = f"Game end! {loser.username} resigned!"
+                game.end_with_win(winner, result_description)
+
             # If game is over send result description and winner username to players
             if game.is_over:
                 game_result = {
+                    "type": "game_ended",
                     "description": game.result_description,
                     "winner": None if not game.winner else game.winner.username,
                 }
