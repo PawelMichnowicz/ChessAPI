@@ -5,11 +5,13 @@ import { toast } from "react-toastify";
 import Board from "./Board";
 import Login from "./Login";
 import WaitingForOpponent from './WaitingForOpponent';
+import MoveHistory from './MoveHistory';
 
 function Game() {
   const [ws, setWs] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [gameState, setGameState] = useState([]);
+  const [gameStateBoard, setGameStateBoard] = useState([]);
+  const [gameMoveHistory, setGameMoveHistory] = useState({});
   const [gameInfo, setGameInfo] = useState(null);
   const [waitingForOpponent, setWaitingForOpponent] = useState(false);
   const [modalIsOpen, setModalIsOpen] = useState(false);
@@ -26,7 +28,8 @@ function Game() {
       const message = JSON.parse(event.data);
       switch (message.type) {
         case "game_state":
-          setGameState(message.state);
+          setGameStateBoard(message.board);
+          setGameMoveHistory(message.record_of_moves);
           handleValidMove();
           break;
         case "waiting_for_opponent":
@@ -142,10 +145,11 @@ function Game() {
               </p>
               <p>Opponent: {gameInfo.opponent_username}</p>
               <Board
-                gameState={gameState}
+                gameState={gameStateBoard}
                 onMove={handleMove}
                 isWhite={gameInfo.is_white}
               />
+              <MoveHistory history={gameMoveHistory} />
               <button
                 className="button"
                 onClick={handleDrawOffer}

@@ -152,7 +152,8 @@ class ChessServer:
         json_message = json.dumps(
             {
                 "type": "game_state",
-                "state": game.get_chessboard(websocket),
+                "board": game.get_chessboard(websocket),
+                "record_of_moves": []
             }
         )
         await websocket.send(json_message)
@@ -160,9 +161,10 @@ class ChessServer:
         json_message_opponent = json.dumps(
             {
                 "type": "game_state",
-                "state": game.get_chessboard(
+                "board": game.get_chessboard(
                     self.get_opponent_websocket(websocket, game)
                 ),
+                "record_of_moves": []
             }
         )
         await self.send_to_opponent(websocket, game, json_message_opponent)
@@ -181,7 +183,8 @@ class ChessServer:
                         json_message = json.dumps(
                             {
                                 "type": "game_state",
-                                "state": game.get_chessboard(websocket),
+                                "board": game.get_chessboard(websocket),
+                                "record_of_moves": game.board.record_of_moves,
                             }
                         )
                         await websocket.send(json_message)
@@ -189,9 +192,10 @@ class ChessServer:
                         json_message_opponent = json.dumps(
                             {
                                 "type": "game_state",
-                                "state": game.get_chessboard(
+                                "board": game.get_chessboard(
                                     self.get_opponent_websocket(websocket, game)
                                 ),
+                                "record_of_moves": game.board.record_of_moves,
                             }
                         )
                         await self.send_to_opponent(

@@ -456,7 +456,7 @@ class Board:
         self.king = {Color.WHITE: self["e1"], Color.BLACK: self["e8"]}
         self.rook_a = {Color.WHITE: self["a1"], Color.BLACK: self["a8"]}
         self.rook_h = {Color.WHITE: self["h1"], Color.BLACK: self["h8"]}
-        self.record_of_moves = {0: []}
+        self.record_of_moves = {}
         self.last_move_black = (None, None)
         self.last_move_white = (None, None)
         self.record_of_gameboard = {"one_rep": [], "two_rep": [], "three_rep": []}
@@ -570,7 +570,7 @@ class Board:
             return position[0] in "abcdefgh" and 0 < int(position[1:]) <= 8
         return -1 < position[1] < 8 and -1 < position[0] < 8
 
-    def save_move(self, start_field, end_field, piece):
+    def save_move(self, start_field, end_field, piece, actions):
         """Save the move to record_of_moves made by a piece.
 
         Args:
@@ -578,13 +578,22 @@ class Board:
             end_field (str): Ending position of the move in chess notation.
             piece (Piece): The chess piece making the move.
         """
-        num_move = max(self.record_of_moves.keys())
+        if self.record_of_moves:
+            num_move = max(self.record_of_moves.keys())
+        else:
+            num_move = 0
         piece.last_move = num_move
+        move_data = {
+            "from": start_field,
+            "to": end_field,
+            "piece": str(piece),
+            "actions": actions,
+        }
         if piece.color == Color.WHITE:
-            self.record_of_moves[num_move + 1] = [f"{start_field}:{end_field}"]
+            self.record_of_moves[num_move + 1] = [move_data]
             self.last_move_white = (start_field, end_field)
         else:
-            self.record_of_moves[num_move].append(f"{start_field}:{end_field}")
+            self.record_of_moves[num_move].append(move_data)
             self.last_move_black = (start_field, end_field)
 
     def save_gameboard(self, gameboard):
@@ -616,8 +625,10 @@ class Board:
             - If the 'simulate_board' parameter is used, the move is performed on
             the simulated board.
             - The function returns True if the move is valid and False otherwise.
-            - The function also updates the move history and the record of game
-            board positions.
+            - The function also updates the record of move history and the record
+            of gameboard positions.
+            - If some actions (as capturing, castling, promotion or check) took place
+            then function marks it in the record of moves
         """
         # Determine the board to perform the move on
         if simulate_board:
@@ -629,6 +640,18 @@ class Board:
         piece = board[start_field]
         target = board[end_field]
 
+        # "capturing", "castling", "promotion", "check" will be add if it happened
+        actions = []
+
+        # If there is a piece at the ending field, remove it from the board
+        if isinstance(target, Piece):
+            actions.append("capturing")
+            target.position = self.EMPTY
+            board.all_pieces[target.color].discard(target)
+            if not simulate_board:
+                # Reset the fifty-move counter if it is a capturing move
+                self.fifty_move_count = 0
+
         # Check if the piece is a pawn and reset the fifty-move counter if it moves
         if isinstance(piece, Pawn):
             self.fifty_move_count = 0
@@ -636,15 +659,8 @@ class Board:
             if (end_field[1] == "8" and piece.color == Color.WHITE) or (
                 end_field[1] == "1" and piece.color == Color.BLACK
             ):
+                actions.append("promotion")
                 piece = Queen(piece.color)  # pawn promotion
-
-        # If there is a piece at the ending field, remove it from the board
-        if isinstance(target, Piece):
-            target.position = self.EMPTY
-            board.all_pieces[target.color].discard(target)
-            if not simulate_board:
-                # Reset the fifty-move counter if it is a capturing move
-                self.fifty_move_count = 0
 
         # Check if en passant was made and involved it
         if (
@@ -660,7 +676,8 @@ class Board:
             board[captured_pawn_position] = self.EMPTY
 
         # Check if the move is castling for the King
-        elif isinstance(piece, King) and not piece.last_move:
+        if isinstance(piece, King) and not piece.last_move:
+            actions.append("castling")
             row = end_field[1]
             match end_field[0]:
                 case "c":
@@ -676,13 +693,16 @@ class Board:
                 case _:
                     pass
 
+        if board.is_check(opposite_color(piece.color)):
+            actions.append("check")
+
         # Update the board with the new piece positions
         board[end_field] = piece
         board[start_field] = self.EMPTY
 
         # If not simulating the move, save the move and update the fifty-move counter
         if not simulate_board:
-            self.save_move(start_field, end_field, piece)
+            self.save_move(start_field, end_field, piece, actions)
             self.save_gameboard(self.gameboard)
             self.fifty_move_count += 1
 

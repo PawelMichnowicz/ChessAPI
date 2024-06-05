@@ -284,6 +284,7 @@ def test_checkmate(start_field, end_field, game_with_empty_board):
     game.board["c8"].last_move = 1
     put_piece_on_board(game.board, King, Color.WHITE, "a1")
     game.board["a1"].last_move = 1
+    game.board.record_of_moves = {0: [], }
     put_piece_on_board(game.board, Pawn, Color.WHITE, "b2")
     put_piece_on_board(game.board, Pawn, Color.WHITE, "a2")
     put_piece_on_board(game.board, Bishop, Color.WHITE, "b1")
@@ -378,6 +379,7 @@ def test_stalemate_50move_rule(game_with_empty_board):
     put_piece_on_board(game.board, Queen, Color.BLACK, "a3")
     put_piece_on_board(game.board, King, Color.WHITE, "a1")
     game.board["a1"].last_move = 1
+    game.board.record_of_moves = {0: []}
     put_piece_on_board(game.board, Pawn, Color.WHITE, "a2")
     put_piece_on_board(game.board, Pawn, Color.WHITE, "b2")
     put_piece_on_board(game.board, Rook, Color.WHITE, "d2")
@@ -474,6 +476,7 @@ def test_en_passant(game_with_empty_board):
     put_piece_on_board(game.board, Queen, Color.BLACK, "a3")
     put_piece_on_board(game.board, King, Color.WHITE, "a1")
     game.board["a1"].last_move = 1
+    game.board.record_of_moves = {0: []}
     put_piece_on_board(game.board, Pawn, Color.WHITE, "a2")
     put_piece_on_board(game.board, Queen, Color.BLACK, "a3")
     put_piece_on_board(game.board, Pawn, Color.BLACK, "b7")

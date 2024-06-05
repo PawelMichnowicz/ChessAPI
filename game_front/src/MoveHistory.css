@@ -1,0 +1,30 @@
+.move-history {
+    font-family: 'Arial', sans-serif;
+  }
+  
+  .move-pair {
+    display: flex;
+    align-items: center;
+    margin-bottom: 4px;
+  }
+  
+  .move-number {
+    width: 20px;
+    text-align: right;
+    margin-right: 8px;
+  }
+  
+  .white-move, .black-move {
+    display: flex;
+    align-items: center;
+  }
+  
+  .piece-icon {
+    width: 20px;
+    text-align: center;
+  }
+  
+  .move-text {
+    margin-left: 4px;
+  }
+  
